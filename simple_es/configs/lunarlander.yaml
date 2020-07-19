@@ -1,0 +1,7 @@
+env_name: "LunarLander-v2"
+seed: 0
+epoch: 200
+population_size: 50
+num_process: 2
+target_reward: 200
+

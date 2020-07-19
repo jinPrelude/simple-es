@@ -1,23 +1,24 @@
-from simple_es.es import BasicEs
+from simple_es.es import ES
+from simple_es.agent import Agent
 import gym
 import simple_es
 import hydra
 from omegaconf import DictConfig
 
 
-@hydra.main(config_path="./configs/rastrigin.yaml")
+@hydra.main(config_path="./configs/lunarlander.yaml")
 def main(cfg: DictConfig = None):
-    #print(cfg.pretty())
-    env = gym.make("Rastrigin-v0")
-    agent = BasicEs(
-        epoch=1000,
+    env = gym.make(cfg.env_name)
+    es = ES(
+        epoch=cfg.epoch,
         env=env,
-        mu_init=4,
-        population_size=6000,
-        sigma_init=0.9,
-        num_process=2,
+        seed=cfg.seed,
+        model=Agent,
+        population_size=cfg.population_size,
+        num_process=cfg.num_process,
+        target_reward=cfg.target_reward,
     )
-    agent.run()
+    es.run()
 
 
 if __name__ == "__main__":
