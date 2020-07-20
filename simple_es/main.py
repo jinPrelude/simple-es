@@ -18,6 +18,7 @@ def main(cfg: DictConfig = None):
         population_size=cfg.population_size,
         num_process=cfg.num_process,
         target_reward=cfg.target_reward,
+        wandb_log=cfg.wandb_log,
     )
     es.run()
 
