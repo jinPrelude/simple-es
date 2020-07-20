@@ -1,5 +1,5 @@
-env_name: "LunarLander-v2"
-max_episode_step: 300
+env_name: "BipedalWalker-v2"
+max_episode_step: 500
 seed: 1
 epoch: 1000
 population_size: 150

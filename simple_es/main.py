@@ -12,6 +12,7 @@ def main(cfg: DictConfig = None):
     es = ES(
         epoch=cfg.epoch,
         env=env,
+        max_episode_step=cfg.max_episode_step,
         seed=cfg.seed,
         model=Agent,
         population_size=cfg.population_size,

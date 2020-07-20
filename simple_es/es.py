@@ -13,6 +13,7 @@ class ES:
         self,
         model,
         env,
+        max_episode_step,
         seed,
         epoch=1000,
         population_size=100,
@@ -21,6 +22,7 @@ class ES:
         target_reward=300,
     ):
         self.env = env
+        self.max_episode_step = max_episode_step
         self.model = model
         self.epoch = epoch
         self.population_size = population_size
@@ -78,9 +80,9 @@ class ES:
             population.append(self.gen_offspring(self.top_elite_param, 0, 1)[0])
         else:
             population = self.gen_offspring(
-                self.top_elite_param, self.std, population_per_process
+                self.mean_elite_param, self.std, population_per_process
             )
-        # population = self.gen_offspring(self.top_elite_param, self.std, population_per_process)
+        # population = self.gen_offspring(self.mean_elite_param, self.std, population_per_process)
         # 환경과 상호작용
         result = []
         with torch.no_grad():
@@ -88,7 +90,7 @@ class ES:
                 episode_reward = 0
                 for _ in range(5):
                     s = self.env.reset()
-                    for _ in range(300):
+                    for _ in range(self.max_episode_step):
                         a = agent(torch.Tensor(s).float()).argmax()
                         s, r, d, _ = self.env.step(a.numpy())
                         episode_reward += r
@@ -153,15 +155,24 @@ class ES:
             # save elite_param by calculating the mean value of ranked parameters
             self.mean_elite_param = np.mean(population_params[: self.elite_num], axis=0)
             # print mean reward of ranked agents
-            print("iter : %d\telite_mean_reward: %f" % (i, rewards[0][1]))
+            sum_std = [np.mean(x) for x in self.std]
+            print("iter : %d\telite_mean_reward: %f\tmean_std: %f" % (i, rewards[0][1], np.sum(sum_std)))
 
             # calculate sigma
-            deviations = []
-            for param in population_params:
-                deviations.append(np.power(param - self.mean_elite_param, 2))
-            variance = np.mean(np.array(deviations), axis=0)
-            std = [np.sqrt(x) for x in variance]
-            self.std = np.array(std, dtype=object)
+
+            # 정석
+            # deviations = []
+            # for param in population_params:
+            #     deviations.append(np.power(param - self.mean_elite_param, 2))
+            # variance = np.mean(np.array(deviations), axis=0)
+            # std = [np.sqrt(x) for x in variance]
+            # self.std = np.array(std, dtype=object)
+
+            # 그냥 decay
+            tmp_std = []
+            for layer in self.std:
+                tmp_std.append(layer * 0.99)
+            self.std = tmp_std
 
             wandb.log({"reward": rewards[0][1]})
 
