@@ -1,0 +1,12 @@
+env_name: "LunarLander-v2"
+is_continuous_action: False
+max_episode_step: 300
+seed: 1
+std_init: 0.5
+std_decay: 0.99
+epoch: 1000
+population_size: 150
+num_process: 8
+target_reward: 240
+wandb_log: False
+test: False

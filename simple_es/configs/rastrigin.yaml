@@ -1,0 +1,7 @@
+hyper_params:
+  epoch: 1000
+  bias: 10
+  sigma_init: 0.5
+  population_size: 1000
+  elite_ratio: 0.1
+  num_process: 2

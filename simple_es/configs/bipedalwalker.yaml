@@ -1,0 +1,12 @@
+env_name: "BipedalWalker-v2"
+is_continuous_action: True
+max_episode_step: 500
+seed: 1
+std_init: 1
+std_decay: 0.995
+epoch: 1000
+population_size: 150
+num_process: 8
+target_reward: 200
+wandb_log: False
+test: False
