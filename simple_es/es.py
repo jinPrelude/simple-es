@@ -8,15 +8,18 @@ import gym
 from torch import nn
 import torch.nn.functional as F
 import wandb
-
+import pickle
 
 class ES:
     def __init__(
         self,
         model: nn.Module,
         env: gym.Env,
+        is_continuous_action: bool,
         max_episode_step: int,
         seed: int,
+        std_init: float = 0.5,
+        std_decay: int = 0.99,
         epoch: int = 1000,
         population_size: int = 100,
         elite_ratio: int = 0.1,
@@ -25,7 +28,9 @@ class ES:
         wandb_log: bool = True,
     ):
         self.env = env
+        self.is_continuous_action = is_continuous_action
         self.seed = seed
+        self.std_decay = std_decay
         self.max_episode_step = max_episode_step
         self.model = model
         self.epoch = epoch
@@ -46,23 +51,25 @@ class ES:
         self.elite_num = int(self.population_size * self.elite_ratio)
 
         self.obs_dim = self.env.observation_space.shape[0]
-        self.action_dim = self.env.action_space.n
-
-        init_agent = self.model(self.obs_dim, self.action_dim, [80, 80])
+        if self.is_continuous_action:
+            self.action_dim = self.env.action_space.shape[0]
+        else:
+            self.action_dim = self.env.action_space.n
+        init_agent = self.model(self.obs_dim, self.action_dim, [120, 120])
         self.mean_elite_param = []
         self.top_elite_param = []
         self.std = []
         for layer in init_agent.layers:
             self.mean_elite_param.append(layer.weight.data.numpy())
             self.top_elite_param.append(layer.weight.data.numpy())
-            self.std.append(np.ones(layer.weight.data.shape).astype(np.float32) * 0.5)
+            self.std.append(np.ones(layer.weight.data.shape).astype(np.float32) * std_init)
         self.mean_elite_param = np.array(self.mean_elite_param, dtype=object)
         self.top_elite_param = np.array(self.top_elite_param, dtype=object)
 
     def gen_offspring(self, parent: object, sigma: object, offspring_num: int,) -> list:
         offspring = []
         for _ in range(offspring_num):
-            tmp_agent = self.model(self.obs_dim, self.action_dim, [80, 80])
+            tmp_agent = self.model(self.obs_dim, self.action_dim, [120, 120])
             for j in range(len(tmp_agent.layers)):
                 with torch.no_grad():
                     if isinstance(sigma, int):
@@ -93,15 +100,16 @@ class ES:
         with torch.no_grad():
             for agent in population:
                 episode_reward = 0
-                for _ in range(5):
+                for _ in range(10):
                     s = self.env.reset()
                     for _ in range(self.max_episode_step):
-                        a = agent(torch.Tensor(s).float()).argmax()
+                        a = agent(torch.Tensor(s).float())
+                        if not self.is_continuous_action: a = a.argmax()
                         s, r, d, _ = self.env.step(a.numpy())
                         episode_reward += r
                         if d:
                             break
-                episode_reward /= 5
+                episode_reward /= 10
                 result.append([agent, episode_reward])
         return result
 
@@ -117,21 +125,27 @@ class ES:
         test_num = 10
         reward_sum = 0
         self.env.seed(self.seed)
-        for _ in range(test_num):
-            episode_reward = 0
-            s = self.env.reset()
-            for _ in range(self.max_episode_step):
-                a = agent(torch.Tensor(s).float()).argmax()
-                s, r, d, _ = self.env.step(a.numpy())
-                if render:
-                    self.env.render()
-                episode_reward += r
-                if d:
-                    break
-            reward_sum += episode_reward
-            if print_log:
-                print("reward: %.3f" % episode_reward)
+        with torch.no_grad():
+            for _ in range(test_num):
+                episode_reward = 0
+                s = self.env.reset()
+                for _ in range(self.max_episode_step):
+                    a = agent(torch.Tensor(s).float())
+                    if not self.is_continuous_action: a = a.argmax()
+                    s, r, d, _ = self.env.step(a.numpy())
+                    if render:
+                        self.env.render()
+                    episode_reward += r
+                    if d:
+                        break
+                reward_sum += episode_reward
+                if print_log:
+                    print("reward: %.3f" % episode_reward)
         return reward_sum / test_num
+
+    def save_agent(self, agent: object):
+        with open('./best_model.pt', "wb") as f:
+            pickle.dump(self.top_elite_param, f)
 
     def run(self):
         start = time.time()
@@ -187,9 +201,10 @@ class ES:
             # 그냥 decay
             tmp_std = []
             for layer in self.std:
-                tmp_std.append(layer * 0.99)
+                tmp_std.append(layer * self.std_decay)
             self.std = tmp_std
             if self.wandb_log:
                 wandb.log({"reward": rewards[0][1]})
         print("process : %d, time: " % (self.num_process), time.time() - start)
-        self._test(self.top_elite_param, render=False, print_log=True)
+        self.save_agent(self.top_elite_param)
+        self._test(self.top_elite_param, render=True, print_log=True)
