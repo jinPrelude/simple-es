@@ -7,7 +7,7 @@ from omegaconf import DictConfig
 import torch
 import pickle
 
-@hydra.main(config_path="./configs/bipedalwalker.yaml")
+@hydra.main(config_path="./configs/lunarlander.yaml")
 def main(cfg: DictConfig = None):
     print(cfg.pretty())
     env = gym.make(cfg.env_name)

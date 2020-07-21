@@ -9,6 +9,70 @@ from torch import nn
 import torch.nn.functional as F
 import wandb
 import pickle
+import ray
+from simple_es.utils import slice_list
+
+@ray.remote
+def interact(env, population, max_episode_step, is_continuous_action) -> list:
+        # 환경과 상호작용
+        result = []
+        with torch.no_grad():
+            for agent in population:
+                episode_reward = 0
+                for _ in range(10):
+                    s = env.reset()
+                    for _ in range(max_episode_step):
+                        a = agent(torch.Tensor(s).float())
+                        if not is_continuous_action: a = a.argmax()
+                        s, r, d, _ = env.step(a.numpy())
+                        episode_reward += r
+                        if d:
+                            break
+                episode_reward /= 10
+                result.append([agent, episode_reward])
+        return result
+"""
+@ray.remote
+def gen_offspring(parent: object, sigma: object, offspring_num: int, model, obs_dim, action_dim, hidden_dim) -> list:
+        offspring = []
+        for _ in range(offspring_num):
+            tmp_agent = model(obs_dim, action_dim, hidden_dim)
+            for j in range(len(tmp_agent.layers)):
+                with torch.no_grad():
+                    if isinstance(sigma, int):
+                        weight = np.random.normal(parent[j], sigma)
+                    else:
+                        weight = np.random.normal(parent[j], sigma[j])
+                    weight = torch.Tensor(weight).float()
+                    tmp_agent.layers[j].weight.data = weight
+            offspring.append(tmp_agent)
+        return offspring
+"""
+@ray.remote
+class gen_offspring(object):
+    def __init__(self, model, obs_dim, action_dim, hidden_dim):
+        self.model = model
+        self.obs_dim = obs_dim
+        self.action_dim = action_dim
+        self.hidden_dim = hidden_dim
+        self.offspring = []
+    def set(self, parent: object, sigma: object, offspring_num: int):
+        offspring = []
+        tmp_agent = self.model(self.obs_dim, self.action_dim, deepcopy(self.hidden_dim))
+        for _ in range(offspring_num):
+            for j in range(len(tmp_agent.layers)):
+                with torch.no_grad():
+                    if isinstance(sigma, int):
+                        weight = np.random.normal(parent[j], sigma)
+                    else:
+                        weight = np.random.normal(parent[j], sigma[j])
+                    weight = torch.Tensor(weight).float()
+                    tmp_agent.layers[j].weight.data = weight
+            offspring.append(tmp_agent)
+        self.offspring = offspring
+    
+    def get(self):
+        return self.offspring
 
 class ES:
     def __init__(
@@ -40,6 +104,8 @@ class ES:
         self.target_reward = target_reward
         self.wandb_log = wandb_log
 
+        ray.init(num_cpus=num_process)
+        
         np.random.seed(seed)
         torch.manual_seed(seed)
         self.env.seed(seed)
@@ -55,6 +121,9 @@ class ES:
             self.action_dim = self.env.action_space.shape[0]
         else:
             self.action_dim = self.env.action_space.n
+
+        self.offspring_generator = gen_offspring.remote(model, self.obs_dim, self.action_dim, [120, 120])
+
         init_agent = self.model(self.obs_dim, self.action_dim, [120, 120])
         self.mean_elite_param = []
         self.top_elite_param = []
@@ -66,53 +135,6 @@ class ES:
         self.mean_elite_param = np.array(self.mean_elite_param, dtype=object)
         self.top_elite_param = np.array(self.top_elite_param, dtype=object)
 
-    def gen_offspring(self, parent: object, sigma: object, offspring_num: int,) -> list:
-        offspring = []
-        for _ in range(offspring_num):
-            tmp_agent = self.model(self.obs_dim, self.action_dim, [120, 120])
-            for j in range(len(tmp_agent.layers)):
-                with torch.no_grad():
-                    if isinstance(sigma, int):
-                        weight = np.random.normal(parent[j], sigma)
-                    else:
-                        weight = np.random.normal(parent[j], sigma[j])
-                    weight = torch.Tensor(weight).float()
-                    tmp_agent.layers[j].weight.data = weight
-            offspring.append(tmp_agent)
-        return offspring
-
-    def interact(self, arguments: tuple,) -> list:
-        worker_id = arguments[0]
-        population_per_process = arguments[1]
-
-        if worker_id == 0:
-            population = self.gen_offspring(
-                self.mean_elite_param, self.std, population_per_process - 1
-            )
-            population.append(self.gen_offspring(self.top_elite_param, 0, 1)[0])
-        else:
-            population = self.gen_offspring(
-                self.mean_elite_param, self.std, population_per_process
-            )
-        # population = self.gen_offspring(self.mean_elite_param, self.std, population_per_process)
-        # 환경과 상호작용
-        result = []
-        with torch.no_grad():
-            for agent in population:
-                episode_reward = 0
-                for _ in range(10):
-                    s = self.env.reset()
-                    for _ in range(self.max_episode_step):
-                        a = agent(torch.Tensor(s).float())
-                        if not self.is_continuous_action: a = a.argmax()
-                        s, r, d, _ = self.env.step(a.numpy())
-                        episode_reward += r
-                        if d:
-                            break
-                episode_reward /= 10
-                result.append([agent, episode_reward])
-        return result
-
     def _test(
         self,
         agent_params: object,
@@ -121,7 +143,8 @@ class ES:
         test_episode_num: int = 1,
     ) -> float:
         # test
-        agent = self.gen_offspring(agent_params, 0, 1)[0]
+        self.offspring_generator.set.remote(agent_params, 0, 1)
+        agent = ray.get(self.offspring_generator.get.remote())[0]
         test_num = 10
         reward_sum = 0
         self.env.seed(self.seed)
@@ -149,12 +172,19 @@ class ES:
 
     def run(self):
         start = time.time()
-        p = mp.Pool(self.num_process)
-        population_per_process = int(self.population_size / self.num_process)
+        #self.offspring_generator.set.remote(self.mean_elite_param, self.std, self.population_size - 1)
+        
         for i in range(self.epoch):
-            arguments = [(j, population_per_process) for j in range(self.num_process)]
-            outputs = p.map(self.interact, arguments)
-
+    
+            #arguments = [(j, offspring[j]) for j in range(self.num_process)]
+            #outputs = p.map(self.interact, arguments)
+            self.offspring_generator.set.remote(self.mean_elite_param, self.std, self.population_size - 1)
+            offspring = ray.get(self.offspring_generator.get.remote())
+            self.offspring_generator.set.remote(self.top_elite_param, 0, 1)
+            offspring.append(ray.get(self.offspring_generator.get.remote())[0])
+            offspring = slice_list(offspring, self.num_process)
+            
+            outputs = ray.get([interact.remote(self.env, offspring[j], self.max_episode_step, self.is_continuous_action) for j in range(self.num_process)])
             # update
 
             # concat output lists to single list
@@ -170,19 +200,23 @@ class ES:
                 population_params.append([x.weight.data.numpy() for x in agent.layers])
             population_params = np.array(population_params, dtype=object)
 
+            # save elite_param by calculating the mean value of ranked parameters
+            self.mean_elite_param = deepcopy(np.mean(population_params[: self.elite_num], axis=0))
+            # print mean reward of ranked agents
+            sum_std = np.mean(np.array([np.mean(x) for x in self.std], dtype=object))
+
+            
+
             # select top agent parameter
             new_rank1_test_r = self._test(population_params[0], test_episode_num=10)
             if new_rank1_test_r > self._test(self.top_elite_param, test_episode_num=10):
-                self.top_elite_param = population_params[0]
+                self.top_elite_param = deepcopy(population_params[0])
                 print("rank1 test mean_reward = %.3f" % (new_rank1_test_r))
             if new_rank1_test_r > self.target_reward:
                 print("final test success.")
                 break
 
-            # save elite_param by calculating the mean value of ranked parameters
-            self.mean_elite_param = np.mean(population_params[: self.elite_num], axis=0)
-            # print mean reward of ranked agents
-            sum_std = np.mean(np.array([np.mean(x) for x in self.std], dtype=object))
+            
             print(
                 "iter : %d\telite_mean_reward: %f\tmean_std: %f"
                 % (i, rewards[0][1], sum_std)
