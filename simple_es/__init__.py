@@ -1,4 +1,5 @@
 from gym.envs.registration import register
+
 from simple_es import *
 
 register(

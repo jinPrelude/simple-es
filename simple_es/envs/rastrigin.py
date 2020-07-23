@@ -1,7 +1,7 @@
 import gym
-from gym import spaces, logger
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+from gym import logger, spaces
 from matplotlib import cm
 
 
