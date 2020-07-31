@@ -1,0 +1,7 @@
+seed: 1
+num_process: 8
+wandb_log: False
+test: False
+defaults:
+  - env_params: lunarlander
+  - agent: FcAgent

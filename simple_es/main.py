@@ -10,18 +10,16 @@ from simple_es.agent import Agent
 from simple_es.es import ES
 
 
-@hydra.main(config_path="./configs/lunarlander.yaml")
+@hydra.main(config_path="./conf/config.yaml")
 def main(cfg: DictConfig = None):
     print(cfg.pretty())
     env = gym.make(cfg.env_name)
     es = ES(
         env=env,
-        is_continuous_action=cfg.is_continuous_action,
-        model=Agent,
         num_process=cfg.num_process,
         seed=cfg.seed,
         wandb_log=cfg.wandb_log,
-        hyperparams=cfg.hyperparams,
+        hyperparams=cfg,
     )
     if cfg.test:
         param = pickle.load(

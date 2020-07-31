@@ -1,0 +1,10 @@
+env_name: "LunarLander-v2"
+is_continuous_action: False
+epoch: 1000
+max_episode_step: 300
+std_init: 0.5
+std_decay: 0.99
+population_size: 150
+elite_ratio: 0.1
+target_reward: 240
+episode_num_per_one: 10 # each agent evaluate for n episode at one lifetime

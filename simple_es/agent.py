@@ -9,7 +9,7 @@ from torch import nn
 
 class Agent(nn.Module):
     def __init__(
-        self, D_in=2, D_out=4, D_hidden=[80, 80],
+        self, D_in, D_out, D_hidden=[80, 80],
     ):
         super(Agent, self).__init__()
         self.layers = []

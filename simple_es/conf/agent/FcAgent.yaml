@@ -1,0 +1,4 @@
+agent:
+  class: simple_es.agent.Agent
+  params:
+    D_hidden: [120, 120]

@@ -5,6 +5,7 @@ import time
 from copy import deepcopy
 
 import gym
+import hydra
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -17,21 +18,20 @@ import wandb
 class ES:
     def __init__(
         self,
-        model: nn.Module,
         env: gym.Env,
-        is_continuous_action: bool,
         hyperparams: DictConfig,
         seed: int = 0,
         num_process: int = 2,
         wandb_log: bool = True,
     ):
         self.env = env
-        self.is_continuous_action = is_continuous_action
+
+        self.hyperparams = hyperparams
+        self.is_continuous_action = hyperparams.is_continuous_action
         self.seed = seed
-        self.model = model
+        self.model = hyperparams.agent
         self.num_process = num_process
         self.wandb_log = wandb_log
-        self.hyperparams = hyperparams
 
         np.random.seed(seed)
         torch.manual_seed(seed)
@@ -50,9 +50,9 @@ class ES:
             self.action_dim = self.env.action_space.shape[0]
         else:
             self.action_dim = self.env.action_space.n
-        init_agent = self.model(
-            self.obs_dim, self.action_dim, deepcopy(self.hyperparams.hidden_size)
-        )
+        self.hyperparams.agent.params.D_in = self.obs_dim
+        self.hyperparams.agent.params.D_out = self.action_dim
+        init_agent = hydra.utils.instantiate(cfg.params.agent)
         self.mean_elite_param = []
         self.top_elite_param = []
         self.std = []
@@ -69,9 +69,7 @@ class ES:
     def gen_offspring(self, parent: object, sigma: object, offspring_num: int,) -> list:
         offspring = []
         for _ in range(offspring_num):
-            tmp_agent = self.model(
-                self.obs_dim, self.action_dim, deepcopy(self.hyperparams.hidden_size)
-            )
+            tmp_agent = hydra.utils.instantiate(cfg.params.agent)
             for j in range(len(tmp_agent.layers)):
                 with torch.no_grad():
                     if isinstance(sigma, int):
