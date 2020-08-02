@@ -1,6 +1,7 @@
 import pickle
 
 import gym
+import pybulletgym
 import hydra
 import torch
 from omegaconf import DictConfig
@@ -22,12 +23,7 @@ def main(cfg: DictConfig = None):
         hyperparams=cfg,
     )
     if cfg.test:
-        param = pickle.load(
-            open(
-                "/home/jinprelude/Documents/simple-es/outputs/2020-07-21/11-34-46/best_model.pt",
-                "rb",
-            )
-        )
+        param = pickle.load(open(cfg.test_model_dlr, "rb",))
         es._test(param, render=True, print_log=True, test_episode_num=100)
     else:
         es.run()

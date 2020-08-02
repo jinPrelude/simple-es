@@ -27,7 +27,6 @@ class ES:
         self.env = env
 
         self.hyperparams = hyperparams
-        self.is_continuous_action = hyperparams.is_continuous_action
         self.seed = seed
         self.model = hyperparams.agent
         self.num_process = num_process
@@ -46,13 +45,11 @@ class ES:
         )
 
         self.obs_dim = self.env.observation_space.shape[0]
-        if self.is_continuous_action:
-            self.action_dim = self.env.action_space.shape[0]
-        else:
-            self.action_dim = self.env.action_space.n
+        self.action_dim = self.env.action_space.shape[0]
+
         self.hyperparams.agent.params.D_in = self.obs_dim
         self.hyperparams.agent.params.D_out = self.action_dim
-        init_agent = hydra.utils.instantiate(cfg.params.agent)
+        init_agent = hydra.utils.instantiate(self.hyperparams.agent)
         self.mean_elite_param = []
         self.top_elite_param = []
         self.std = []
@@ -69,7 +66,7 @@ class ES:
     def gen_offspring(self, parent: object, sigma: object, offspring_num: int,) -> list:
         offspring = []
         for _ in range(offspring_num):
-            tmp_agent = hydra.utils.instantiate(cfg.params.agent)
+            tmp_agent = hydra.utils.instantiate(self.hyperparams.agent)
             for j in range(len(tmp_agent.layers)):
                 with torch.no_grad():
                     if isinstance(sigma, int):
@@ -104,14 +101,13 @@ class ES:
                     s = self.env.reset()
                     for _ in range(self.hyperparams.max_episode_step):
                         a = agent(torch.Tensor(s).float())
-                        if not self.is_continuous_action:
-                            a = a.argmax()
                         s, r, d, _ = self.env.step(a.numpy())
                         episode_reward += r
                         if d:
                             break
                 episode_reward /= self.hyperparams.episode_num_per_one
                 result.append([agent, episode_reward])
+        self.env.close()
         return result
 
     def _test(
@@ -132,8 +128,6 @@ class ES:
                 s = self.env.reset()
                 for _ in range(self.hyperparams.max_episode_step):
                     a = agent(torch.Tensor(s).float())
-                    if not self.is_continuous_action:
-                        a = a.argmax()
                     s, r, d, _ = self.env.step(a.numpy())
                     if render:
                         self.env.render()
@@ -156,8 +150,9 @@ class ES:
             self.hyperparams.population_size / self.num_process
         )
         for i in range(self.hyperparams.epoch):
-            arguments = [(j, population_per_process) for j in range(self.num_process)]
-            outputs = p.map(self.interact, arguments)
+            # arguments = [(j, population_per_process) for j in range(self.num_process)]
+            # outputs = p.map(self.interact, arguments)
+            outputs = [self.interact((1, 50))]
 
             # update
 

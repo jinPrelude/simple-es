@@ -2,6 +2,7 @@ seed: 1
 num_process: 8
 wandb_log: False
 test: False
+test_model_dir: "/home/jinprelude/Documents/simple-es/outputs/2020-07-21/11-34-46/best_model.pt"
 defaults:
-  - env_params: lunarlander
+  - env_params: ant
   - agent: FcAgent

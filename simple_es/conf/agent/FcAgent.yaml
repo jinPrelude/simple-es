@@ -1,4 +1,6 @@
 agent:
-  class: simple_es.agent.Agent
+  cls: simple_es.agent.Agent
   params:
+    D_in: 2
+    D_out: 2
     D_hidden: [120, 120]

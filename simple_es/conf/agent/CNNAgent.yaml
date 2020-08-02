@@ -1,0 +1,11 @@
+agent:
+  cls: simple_es.agent.CNNAgent
+  params:
+    input_channel_size: 4
+    channel_size: [
+      [32, [8, 8], 4], # channel_size, kernal_size, stride
+      [64, [4, 4], 2]
+      ]
+    D_in: 2
+    D_out: 2
+    D_hidden: [512]

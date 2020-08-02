@@ -1,0 +1,9 @@
+env_name: "AntPyBulletEnv-v0"
+epoch: 700
+max_episode_step: 300
+std_init: 1
+std_decay: 0.995
+population_size: 150
+elite_ratio: 0.1
+target_reward: 1000
+episode_num_per_one: 1 # each agent evaluate for n episode at one lifetime
