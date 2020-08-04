@@ -1,6 +1,6 @@
 agent:
-  cls: simple_es.agent.Agent
+  target: simple_es.agent.Agent
   params:
-    D_in: 2
-    D_out: 2
+    obs_space: 2
+    action_space: 2
     D_hidden: [120, 120]

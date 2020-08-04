@@ -44,11 +44,8 @@ class ES:
             self.hyperparams.population_size * self.hyperparams.elite_ratio
         )
 
-        self.obs_dim = self.env.observation_space.shape[0]
-        self.action_dim = self.env.action_space.shape[0]
-
-        self.hyperparams.agent.params.D_in = self.obs_dim
-        self.hyperparams.agent.params.D_out = self.action_dim
+        self.hyperparams.agent.params.obs_space = self.env.observation_space.shape
+        self.hyperparams.agent.params.action_space = self.env.action_space.shape
         init_agent = hydra.utils.instantiate(self.hyperparams.agent)
         self.mean_elite_param = []
         self.top_elite_param = []
@@ -100,7 +97,7 @@ class ES:
                 for _ in range(self.hyperparams.episode_num_per_one):
                     s = self.env.reset()
                     for _ in range(self.hyperparams.max_episode_step):
-                        a = agent(torch.Tensor(s).float())
+                        a = agent(torch.Tensor(s.copy()).float())
                         s, r, d, _ = self.env.step(a.numpy())
                         episode_reward += r
                         if d:
@@ -123,20 +120,22 @@ class ES:
         reward_sum = 0
         self.env.seed(self.seed)
         with torch.no_grad():
-            for _ in range(test_num):
+            for i in range(test_num):
                 episode_reward = 0
                 s = self.env.reset()
                 for _ in range(self.hyperparams.max_episode_step):
-                    a = agent(torch.Tensor(s).float())
+                    a = agent(torch.Tensor(s.copy()).float())
                     s, r, d, _ = self.env.step(a.numpy())
                     if render:
                         self.env.render()
                     episode_reward += r
                     if d:
+                        self.env.close()
                         break
                 reward_sum += episode_reward
                 if print_log:
                     print("reward: %.3f" % episode_reward)
+
         return reward_sum / test_num
 
     def save_agent(self, agent: object):
@@ -152,8 +151,7 @@ class ES:
         for i in range(self.hyperparams.epoch):
             # arguments = [(j, population_per_process) for j in range(self.num_process)]
             # outputs = p.map(self.interact, arguments)
-            outputs = [self.interact((1, 50))]
-
+            outputs = [self.interact((1, 150))]
             # update
 
             # concat output lists to single list
