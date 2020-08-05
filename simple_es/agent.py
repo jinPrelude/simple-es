@@ -20,6 +20,7 @@ class Agent(nn.Module):
             with torch.no_grad():
                 tmp_layer.weight = nn.init.normal_(tmp_layer.weight)
             in_size = out_size
+            self.__setattr__("hidden_fc{}".format(i), tmp_layer)
             self.layers.append(tmp_layer)
 
     def forward(self, x):

@@ -139,6 +139,7 @@ class ES:
         return reward_sum / test_num
 
     def save_agent(self, agent: object):
+
         with open("./best_model.pt", "wb") as f:
             pickle.dump(self.top_elite_param, f)
 
@@ -149,9 +150,9 @@ class ES:
             self.hyperparams.population_size / self.num_process
         )
         for i in range(self.hyperparams.epoch):
-            # arguments = [(j, population_per_process) for j in range(self.num_process)]
-            # outputs = p.map(self.interact, arguments)
-            outputs = [self.interact((1, 150))]
+            arguments = [(j, population_per_process) for j in range(self.num_process)]
+            outputs = p.map(self.interact, arguments)
+            # outputs = [self.interact((1, 150))]
             # update
 
             # concat output lists to single list

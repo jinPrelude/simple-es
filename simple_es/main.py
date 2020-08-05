@@ -23,7 +23,7 @@ def main(cfg: DictConfig = None):
         hyperparams=cfg,
     )
     if cfg.test:
-        param = pickle.load(open(cfg.test_model_dlr, "rb",))
+        param = pickle.load(open(cfg.test_model_dir, "rb",))
         es._test(param, render=True, print_log=True, test_episode_num=100)
     else:
         es.run()
