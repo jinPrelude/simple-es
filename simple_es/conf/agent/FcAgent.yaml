@@ -1,0 +1,6 @@
+agent:
+  target: simple_es.agent.Agent
+  params:
+    obs_space: 2
+    action_space: 2
+    D_hidden: [120, 120]

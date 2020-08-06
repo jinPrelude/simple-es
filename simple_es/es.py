@@ -5,6 +5,7 @@ import time
 from copy import deepcopy
 
 import gym
+import hydra
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -17,21 +18,19 @@ import wandb
 class ES:
     def __init__(
         self,
-        model: nn.Module,
         env: gym.Env,
-        is_continuous_action: bool,
         hyperparams: DictConfig,
         seed: int = 0,
         num_process: int = 2,
         wandb_log: bool = True,
     ):
         self.env = env
-        self.is_continuous_action = is_continuous_action
+
+        self.hyperparams = hyperparams
         self.seed = seed
-        self.model = model
+        self.model = hyperparams.agent
         self.num_process = num_process
         self.wandb_log = wandb_log
-        self.hyperparams = hyperparams
 
         np.random.seed(seed)
         torch.manual_seed(seed)
@@ -45,14 +44,9 @@ class ES:
             self.hyperparams.population_size * self.hyperparams.elite_ratio
         )
 
-        self.obs_dim = self.env.observation_space.shape[0]
-        if self.is_continuous_action:
-            self.action_dim = self.env.action_space.shape[0]
-        else:
-            self.action_dim = self.env.action_space.n
-        init_agent = self.model(
-            self.obs_dim, self.action_dim, deepcopy(self.hyperparams.hidden_size)
-        )
+        self.hyperparams.agent.params.obs_space = self.env.observation_space.shape
+        self.hyperparams.agent.params.action_space = self.env.action_space.shape
+        init_agent = hydra.utils.instantiate(self.hyperparams.agent)
         self.mean_elite_param = []
         self.top_elite_param = []
         self.std = []
@@ -69,9 +63,7 @@ class ES:
     def gen_offspring(self, parent: object, sigma: object, offspring_num: int,) -> list:
         offspring = []
         for _ in range(offspring_num):
-            tmp_agent = self.model(
-                self.obs_dim, self.action_dim, deepcopy(self.hyperparams.hidden_size)
-            )
+            tmp_agent = hydra.utils.instantiate(self.hyperparams.agent)
             for j in range(len(tmp_agent.layers)):
                 with torch.no_grad():
                     if isinstance(sigma, int):
@@ -105,15 +97,14 @@ class ES:
                 for _ in range(self.hyperparams.episode_num_per_one):
                     s = self.env.reset()
                     for _ in range(self.hyperparams.max_episode_step):
-                        a = agent(torch.Tensor(s).float())
-                        if not self.is_continuous_action:
-                            a = a.argmax()
+                        a = agent(torch.Tensor(s.copy()).float())
                         s, r, d, _ = self.env.step(a.numpy())
                         episode_reward += r
                         if d:
                             break
                 episode_reward /= self.hyperparams.episode_num_per_one
                 result.append([agent, episode_reward])
+        self.env.close()
         return result
 
     def _test(
@@ -129,25 +120,26 @@ class ES:
         reward_sum = 0
         self.env.seed(self.seed)
         with torch.no_grad():
-            for _ in range(test_num):
+            for i in range(test_num):
                 episode_reward = 0
                 s = self.env.reset()
                 for _ in range(self.hyperparams.max_episode_step):
-                    a = agent(torch.Tensor(s).float())
-                    if not self.is_continuous_action:
-                        a = a.argmax()
+                    a = agent(torch.Tensor(s.copy()).float())
                     s, r, d, _ = self.env.step(a.numpy())
                     if render:
                         self.env.render()
                     episode_reward += r
                     if d:
+                        self.env.close()
                         break
                 reward_sum += episode_reward
                 if print_log:
                     print("reward: %.3f" % episode_reward)
+
         return reward_sum / test_num
 
     def save_agent(self, agent: object):
+
         with open("./best_model.pt", "wb") as f:
             pickle.dump(self.top_elite_param, f)
 
@@ -160,7 +152,7 @@ class ES:
         for i in range(self.hyperparams.epoch):
             arguments = [(j, population_per_process) for j in range(self.num_process)]
             outputs = p.map(self.interact, arguments)
-
+            # outputs = [self.interact((1, 150))]
             # update
 
             # concat output lists to single list

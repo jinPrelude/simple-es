@@ -1,7 +1,0 @@
-env_name: "CartPole-v1"
-max_episode_step: 500
-seed: 0
-epoch: 5
-population_size: 60
-num_process: 12
-target_reward: 300

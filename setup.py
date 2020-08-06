@@ -9,7 +9,6 @@ setup(
         "wandb",
         "hydra-core",
         "torch",
-        "Box2D",
         "gym",
         "gym[box2d]",
     ],
