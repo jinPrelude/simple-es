@@ -43,35 +43,19 @@ class ES:
         self.elite_num = int(
             self.hyperparams.population_size * self.hyperparams.elite_ratio
         )
-
+        self.std = self.hyperparams.std_init
         self.hyperparams.agent.params.obs_space = self.env.observation_space.shape
         self.hyperparams.agent.params.action_space = self.env.action_space.shape
         init_agent = hydra.utils.instantiate(self.hyperparams.agent)
-        self.mean_elite_param = []
-        self.top_elite_param = []
-        self.std = []
-        for layer in init_agent.layers:
-            self.mean_elite_param.append(layer.weight.data.numpy())
-            self.top_elite_param.append(layer.weight.data.numpy())
-            self.std.append(
-                np.ones(layer.weight.data.shape).astype(np.float32)
-                * self.hyperparams.std_init
-            )
-        self.mean_elite_param = np.array(self.mean_elite_param, dtype=object)
-        self.top_elite_param = np.array(self.top_elite_param, dtype=object)
+        init_agent.initialize_params(0, self.hyperparams.std_init)
+        self.mean_elite_param = init_agent.get_np_params()
+        self.top_elite_param = init_agent.get_np_params()
 
     def gen_offspring(self, parent: object, sigma: object, offspring_num: int,) -> list:
         offspring = []
         for _ in range(offspring_num):
             tmp_agent = hydra.utils.instantiate(self.hyperparams.agent)
-            for j in range(len(tmp_agent.layers)):
-                with torch.no_grad():
-                    if isinstance(sigma, int):
-                        weight = np.random.normal(parent[j], sigma)
-                    else:
-                        weight = np.random.normal(parent[j], sigma[j])
-                    weight = torch.Tensor(weight).float()
-                    tmp_agent.layers[j].weight.data = weight
+            tmp_agent.initialize_params(parent, sigma)
             offspring.append(tmp_agent)
         return offspring
 
@@ -152,7 +136,7 @@ class ES:
         for i in range(self.hyperparams.epoch):
             arguments = [(j, population_per_process) for j in range(self.num_process)]
             outputs = p.map(self.interact, arguments)
-            # outputs = [self.interact((1, 150))]
+            # outputs = [self.interact((1, 10))]
             # update
 
             # concat output lists to single list
@@ -165,8 +149,7 @@ class ES:
             population_params = []
             for x in rewards:
                 agent = x[0]
-                population_params.append([x.weight.data.numpy() for x in agent.layers])
-            population_params = np.array(population_params, dtype=object)
+                population_params.append(agent.get_np_params())
 
             # select top agent parameter
             current_reward = 0
@@ -175,6 +158,7 @@ class ES:
             if new_rank1_test_r > current_rank1_test_r:
                 self.top_elite_param = population_params[0]
                 current_reward = new_rank1_test_r
+                self.save_agent(self.top_elite_param)
                 print("rank1 test mean_reward = %.3f" % (new_rank1_test_r))
             else:
                 current_reward = current_rank1_test_r
@@ -188,7 +172,9 @@ class ES:
             # save elite_param by calculating the mean value of ranked parameters
 
             # naive mean
-            self.mean_elite_param = np.mean(population_params[: self.elite_num], axis=0)
+            self.mean_elite_param = list(
+                np.mean(population_params[: self.elite_num], axis=0)
+            )
 
             # weighted mean
             # tmp =deepcopy(population_params[:self.elite_num])
@@ -198,10 +184,9 @@ class ES:
             # self.mean_elite_param = np.sum(tmp, axis=0)
 
             # print mean reward of ranked agents
-            sum_std = np.mean(np.array([np.mean(x) for x in self.std], dtype=object))
             print(
                 "iter : %d\telite_mean_reward: %f\tmean_std: %f"
-                % (i, rewards[0][1], sum_std)
+                % (i, rewards[0][1], self.std)
             )
 
             # calculate sigma
@@ -215,10 +200,7 @@ class ES:
             # self.std = np.array(std, dtype=object)
 
             # 그냥 decay
-            tmp_std = []
-            for layer in self.std:
-                tmp_std.append(layer * self.hyperparams.std_decay)
-            self.std = tmp_std
+            self.std *= self.hyperparams.std_decay
 
         print("process : %d, time: " % (self.num_process), time.time() - start)
         self.save_agent(self.top_elite_param)

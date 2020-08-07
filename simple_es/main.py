@@ -8,7 +8,7 @@ from omegaconf import DictConfig
 
 import simple_es
 from simple_es.agent import Agent
-from simple_es.es import ES
+from simple_es.strategies.es import ES
 
 
 @hydra.main(config_path="./conf/config.yaml")

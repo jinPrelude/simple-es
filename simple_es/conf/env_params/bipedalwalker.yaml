@@ -1,9 +1,9 @@
-env_name: "BipedalWalker-v2"
+env_name: "BipedalWalker-v3"
 epoch: 700
 max_episode_step: 1000
-std_init: 1
+std_init: 2
 std_decay: 0.995
-population_size: 150
+population_size: 250
 elite_ratio: 0.1
 target_reward: 240
 episode_num_per_one: 10 # each agent evaluate for n episode at one lifetime

@@ -1,9 +1,0 @@
-env_name: "Pendulum-v0"
-epoch: 700
-max_episode_step: 300
-std_init: 0.5
-std_decay: 0.995
-population_size: 100
-elite_ratio: 0.1
-target_reward: -10
-episode_num_per_one: 5 # each agent evaluate for n episode at one lifetime
