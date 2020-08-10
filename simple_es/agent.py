@@ -54,12 +54,13 @@ class HebbianAgent(nn.Module):
         super(HebbianAgent, self).__init__()
         self.layers = []
         self.hebbian_coefficient = torch.ones(5)  # a, b, c, d, lr
+        self.hebbian_coefficient = nn.init.uniform_(self.hebbian_coefficient, 0.0, 1.0)
         in_size = obs_space[0]
         D_hidden.append(action_space[0])
         for i, out_size in enumerate(D_hidden):
             tmp_layer = nn.Linear(in_size, out_size)
             with torch.no_grad():
-                tmp_layer.weight = nn.init.normal_(tmp_layer.weight)
+                tmp_layer.weight = nn.init.uniform_(tmp_layer.weight, -0.1, 0.1)
             in_size = out_size
             self.__setattr__("hidden_fc{}".format(i), tmp_layer)
             self.layers.append(tmp_layer)
@@ -67,6 +68,7 @@ class HebbianAgent(nn.Module):
     def update_params(self, x, hidden_layer):
         with torch.no_grad():
             result = hidden_layer(x)
+            result = F.tanh(result)
             tmp = torch.matmul(
                 result.unsqueeze(-1), (self.hebbian_coefficient[0] * x).unsqueeze(0)
             )
@@ -85,12 +87,12 @@ class HebbianAgent(nn.Module):
             tmp += self.hebbian_coefficient[3]
             tmp *= self.hebbian_coefficient[4]
             return result, tmp
-        pass
 
     def forward(self, x):
         for i in range(len(self.layers)):
             x, new_layer_weight = self.update_params(x, self.layers[i])
             self.layers[i].weight.data = deepcopy(new_layer_weight)
+        x = F.tanh(x)  # tanh for bipedalwalker
         return x
 
     def get_np_params(self):
@@ -98,13 +100,9 @@ class HebbianAgent(nn.Module):
 
     def initialize_params(self, mu, std):
         with torch.no_grad():
-            if isinstance(mu, torch.Tensor):
-                tmp_hebbian_coefficient = np.random.normal(mu, std)
-            else:
-                tmp_hebbian_coefficient = np.random.normal(
-                    mu, np.ones(self.hebbian_coefficient.shape) * std
-                )
-            self.hebbian_coefficient = torch.Tensor(tmp_hebbian_coefficient).float()
+            tmp_hebbian_coefficient = np.random.uniform(
+                0.0, 0.1, self.hebbian_coefficient.shape
+            )
 
 
 class CNNAgent(nn.Module):

@@ -136,7 +136,7 @@ class ES:
         for i in range(self.hyperparams.epoch):
             arguments = [(j, population_per_process) for j in range(self.num_process)]
             outputs = p.map(self.interact, arguments)
-            # outputs = [self.interact((1, 10))]
+            # outputs = [self.interact((1, 5))]
             # update
 
             # concat output lists to single list
