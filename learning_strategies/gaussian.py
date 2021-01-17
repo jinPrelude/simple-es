@@ -18,7 +18,7 @@ class RolloutWorker:
     def __init__(self, env_name, offspring_id, worker_id):
         os.environ["MKL_NUM_THREADS"] = "1"
         if env_name == "EatApple":
-            self.env = EatApple(random_goal=10)
+            self.env = EatApple(random_goal=False)
         self.groups = offspring_id[worker_id]
         self.worker_id = worker_id
 
@@ -79,7 +79,7 @@ class Gaussian(BaseLS):
         ]
 
         self.init_sigma = 1
-        self.sigma_decay = 0.99
+        self.sigma_decay = 0.995
 
         ray.init()
 
@@ -141,5 +141,9 @@ class Gaussian(BaseLS):
             print(
                 f"episode: {ep_num}, Best reward  {rewards[0][1]}, sigma: {curr_sigma:.3f}, time: {int(consumed_time)}"
             )
+            save_dir = "saved_models/" + f"ep_{ep_num}/"
+            os.makedirs(save_dir)
+            torch.save(self.elite_models[0][0].state_dict(), save_dir + "agent1")
+            torch.save(self.elite_models[0][1].state_dict(), save_dir + "agent2")
             rewards = []
             curr_sigma *= self.sigma_decay

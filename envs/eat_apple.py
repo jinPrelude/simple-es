@@ -8,8 +8,9 @@ from PIL import Image
 
 
 class EatApple(gym.Env):
-    def __init__(self):
-        self.world_size = 30
+    def __init__(self, random_goal=True):
+        self.random_goal = random_goal
+        self.world_size = 20
         self.total_reward_num = 10
         self.view_size = 5
         self.action_space = spaces.Box(
@@ -22,6 +23,7 @@ class EatApple(gym.Env):
         self.agent1_pos = np.array([self.view_size // 2, self.view_size // 2])
         self.agent2_pos = np.array([self.world_size - 2, self.world_size - 2])
         self.reward_pos = []
+        self.apple_pos = self.generate_apple()
         self.current_reward_num = self.total_reward_num
         self.max_step = 500
         self.current_step = 0
@@ -32,12 +34,14 @@ class EatApple(gym.Env):
             random.randint(0, pow(reward_gen_size, 2) - 1)
             for _ in range(self.total_reward_num)
         ]
-
+        pos_2d = []
         pad = self.view_size // 2
         for pos in rand_pos_1d:
-            pos_2d = [(pos // reward_gen_size) + pad, (pos % reward_gen_size) + pad]
+            pos_2d.append(
+                ((pos // reward_gen_size) + pad, (pos % reward_gen_size) + pad)
+            )
 
-            self.world[pos_2d[0], pos_2d[1]] = 2
+        return pos_2d
 
     def reset(self):
         self.world = np.zeros([self.world_size, self.world_size])
@@ -53,7 +57,13 @@ class EatApple(gym.Env):
         self.current_step = 0
         self.world[self.agent1_pos[0], self.agent1_pos[1]] = 1
         self.world[self.agent2_pos[0], self.agent2_pos[1]] = 1
-        self.generate_apple()
+
+        # generate apple
+        if self.random_goal:
+            self.apple_pos = self.generate_apple()
+        for pos in self.apple_pos:
+            self.world[pos] = 2
+
         agent1_view = self.world[
             self.agent1_pos[0]
             - (self.view_size // 2) : self.agent1_pos[0]
@@ -169,18 +179,19 @@ class EatApple(gym.Env):
         render_img = render_img.resize((200, 200))
         render_img = np.asarray(render_img)
         cv2.imshow("image", render_img)
-        cv2.waitKey(50)
+        cv2.waitKey(30)
 
 
 if __name__ == "__main__":
-    env = EatApple()
     for _ in range(100):
+        env = EatApple(random_goal=False)
         s = env.reset()
         d = False
         ep_r = 0
         while not d:
             env.render()
-            action1 = int(input())
+            # action1 = int(input())
+            action1 = random.randint(0, 3)
             s, r, d = env.step([random.randint(0, 3), action1])
             ep_r += r
         print("reward: ", ep_r)
