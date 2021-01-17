@@ -1,8 +1,7 @@
 import os
-import random
+import time
 from copy import deepcopy
 
-import hydra
 import numpy as np
 import ray
 import torch
@@ -19,7 +18,7 @@ class RolloutWorker:
     def __init__(self, env_name, offspring_id, worker_id):
         os.environ["MKL_NUM_THREADS"] = "1"
         if env_name == "EatApple":
-            self.env = EatApple()
+            self.env = EatApple(random_goal=10)
         self.groups = offspring_id[worker_id]
         self.worker_id = worker_id
 
@@ -50,7 +49,7 @@ class RolloutWorker:
 
 
 def gen_offspring_group(
-    group: object, sigma: object, group_num: int, agents_num_per_group: int
+    group: list, sigma: object, group_num: int, agents_num_per_group: int
 ) -> list:
     groups = []
     for _ in range(group_num):
@@ -87,7 +86,10 @@ class Gaussian(BaseLS):
     def run(self):
 
         curr_sigma = self.init_sigma
+        start_time = time.time()
+        ep_num = 0
         while True:
+            ep_num += 1
             if self.cpu_num == 1:
                 offspring_array = []
                 for p in self.elite_models:
@@ -135,5 +137,9 @@ class Gaussian(BaseLS):
                 for id in elite_ids:
                     self.elite_models.append(offspring_array[id[0][0]][id[0][1]])
                 del offspring_id
-            print(f"Best reward : {rewards[0][1]}, sigma: {curr_sigma}")
+            consumed_time = time.time() - start_time
+            print(
+                f"episode: {ep_num}, Best reward  {rewards[0][1]}, sigma: {curr_sigma:.3f}, time: {int(consumed_time)}"
+            )
+            rewards = []
             curr_sigma *= self.sigma_decay
