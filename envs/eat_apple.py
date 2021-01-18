@@ -23,10 +23,25 @@ class EatApple(gym.Env):
         self.agent1_pos = np.array([self.view_size // 2, self.view_size // 2])
         self.agent2_pos = np.array([self.world_size - 2, self.world_size - 2])
         self.reward_pos = []
-        self.apple_pos = self.generate_apple()
+        self.apple_pos = [
+            (17, 12),
+            (2, 10),
+            (2, 10),
+            (14, 3),
+            (5, 7),
+            (11, 5),
+            (6, 12),
+            (5, 15),
+            (7, 3),
+            (3, 10),
+        ]
         self.current_reward_num = self.total_reward_num
         self.max_step = 500
         self.current_step = 0
+
+        self.floor_color = 1
+        self.agent_color = 126
+        self.apple_color = 250
 
     def generate_apple(self):
         reward_gen_size = self.world_size - (self.view_size // 2) * 2
@@ -44,7 +59,7 @@ class EatApple(gym.Env):
         return pos_2d
 
     def reset(self):
-        self.world = np.zeros([self.world_size, self.world_size])
+        self.world = np.ones([self.world_size, self.world_size]) * self.floor_color
         self.agent1_pos = np.array([self.view_size // 2, self.view_size // 2])
         self.agent2_pos = np.array(
             [
@@ -55,14 +70,14 @@ class EatApple(gym.Env):
         self.reward_pos = []
         self.current_reward_num = 10
         self.current_step = 0
-        self.world[self.agent1_pos[0], self.agent1_pos[1]] = 1
-        self.world[self.agent2_pos[0], self.agent2_pos[1]] = 1
+        self.world[self.agent1_pos[0], self.agent1_pos[1]] = self.agent_color
+        self.world[self.agent2_pos[0], self.agent2_pos[1]] = self.agent_color
 
         # generate apple
         if self.random_goal:
             self.apple_pos = self.generate_apple()
         for pos in self.apple_pos:
-            self.world[pos] = 2
+            self.world[pos] = self.apple_color
 
         agent1_view = self.world[
             self.agent1_pos[0]
@@ -84,62 +99,62 @@ class EatApple(gym.Env):
             + 1
             + (self.view_size // 2),
         ]
-        return (agent1_view[np.newaxis, ...], agent2_view[np.newaxis, ...])
+        return (agent1_view[np.newaxis, ...] / 255, agent2_view[np.newaxis, ...] / 255)
 
     def step(self, actions):
         done = False
         reward = 0
         if actions[0] == 0:  # up
             if not (self.agent1_pos - np.array([1, 0]) == self.agent2_pos).all():
-                self.world[self.agent1_pos[0], self.agent1_pos[1]] = 0
+                self.world[self.agent1_pos[0], self.agent1_pos[1]] = self.floor_color
                 self.agent1_pos[0] = max(self.agent1_pos[0] - 1, self.view_size // 2)
-                self.world[self.agent1_pos[0], self.agent1_pos[1]] = 1
+                self.world[self.agent1_pos[0], self.agent1_pos[1]] = self.agent_color
         elif actions[0] == 1:  # down
             if not (self.agent1_pos + np.array([1, 0]) == self.agent2_pos).all():
-                self.world[self.agent1_pos[0], self.agent1_pos[1]] = 0
+                self.world[self.agent1_pos[0], self.agent1_pos[1]] = self.floor_color
                 self.agent1_pos[0] = min(
                     self.agent1_pos[0] + 1, self.world_size - 1 - (self.view_size // 2)
                 )
-                self.world[self.agent1_pos[0], self.agent1_pos[1]] = 1
+                self.world[self.agent1_pos[0], self.agent1_pos[1]] = self.agent_color
         elif actions[0] == 2:  # left
             if not (self.agent1_pos - np.array([0, 1]) == self.agent2_pos).all():
-                self.world[self.agent1_pos[0], self.agent1_pos[1]] = 0
+                self.world[self.agent1_pos[0], self.agent1_pos[1]] = self.floor_color
                 self.agent1_pos[1] = max(self.agent1_pos[1] - 1, self.view_size // 2)
-                self.world[self.agent1_pos[0], self.agent1_pos[1]] = 1
+                self.world[self.agent1_pos[0], self.agent1_pos[1]] = self.agent_color
         elif actions[0] == 3:  # right
             if not (self.agent1_pos + np.array([0, 1]) == self.agent2_pos).all():
-                self.world[self.agent1_pos[0], self.agent1_pos[1]] = 0
+                self.world[self.agent1_pos[0], self.agent1_pos[1]] = self.floor_color
                 self.agent1_pos[1] = min(
                     self.agent1_pos[1] + 1, self.world_size - 1 - (self.view_size // 2)
                 )
-                self.world[self.agent1_pos[0], self.agent1_pos[1]] = 1
+                self.world[self.agent1_pos[0], self.agent1_pos[1]] = self.agent_color
 
         if actions[1] == 0:  # up
             if not (self.agent2_pos - np.array([1, 0]) == self.agent1_pos).all():
-                self.world[self.agent2_pos[0], self.agent2_pos[1]] = 0
+                self.world[self.agent2_pos[0], self.agent2_pos[1]] = self.floor_color
                 self.agent2_pos[0] = max(self.agent2_pos[0] - 1, self.view_size // 2)
-                self.world[self.agent2_pos[0], self.agent2_pos[1]] = 1
+                self.world[self.agent2_pos[0], self.agent2_pos[1]] = self.agent_color
         elif actions[1] == 1:  # down
             if not (self.agent2_pos + np.array([1, 0]) == self.agent1_pos).all():
-                self.world[self.agent2_pos[0], self.agent2_pos[1]] = 0
+                self.world[self.agent2_pos[0], self.agent2_pos[1]] = self.floor_color
                 self.agent2_pos[0] = min(
                     self.agent2_pos[0] + 1, self.world_size - 1 - (self.view_size // 2)
                 )
-                self.world[self.agent2_pos[0], self.agent2_pos[1]] = 1
+                self.world[self.agent2_pos[0], self.agent2_pos[1]] = self.agent_color
         elif actions[1] == 2:  # left
             if not (self.agent2_pos - np.array([0, 1]) == self.agent1_pos).all():
-                self.world[self.agent2_pos[0], self.agent2_pos[1]] = 0
+                self.world[self.agent2_pos[0], self.agent2_pos[1]] = self.floor_color
                 self.agent2_pos[1] = max(self.agent2_pos[1] - 1, self.view_size // 2)
-                self.world[self.agent2_pos[0], self.agent2_pos[1]] = 1
+                self.world[self.agent2_pos[0], self.agent2_pos[1]] = self.agent_color
         elif actions[1] == 3:  # right
             if not (self.agent2_pos + np.array([0, 1]) == self.agent1_pos).all():
-                self.world[self.agent2_pos[0], self.agent2_pos[1]] = 0
+                self.world[self.agent2_pos[0], self.agent2_pos[1]] = self.floor_color
                 self.agent2_pos[1] = min(
                     self.agent2_pos[1] + 1, self.world_size - 1 - (self.view_size // 2)
                 )
-                self.world[self.agent2_pos[0], self.agent2_pos[1]] = 1
+                self.world[self.agent2_pos[0], self.agent2_pos[1]] = self.agent_color
 
-        cur_r_num = np.where(self.world.flatten() == 2)[0]
+        cur_r_num = np.where(self.world.flatten() == self.apple_color)[0]
         reward = self.current_reward_num - cur_r_num.size
         self.current_reward_num = cur_r_num.size
         self.current_step += 1
@@ -167,13 +182,13 @@ class EatApple(gym.Env):
             + (self.view_size // 2),
         ]
         return (
-            (agent1_view[np.newaxis, ...], agent2_view[np.newaxis, ...]),
+            (agent1_view[np.newaxis, ...] / 255, agent2_view[np.newaxis, ...] / 255),
             reward,
             done,
         )
 
     def render(self, mode="human"):
-        render = self.world.copy() * 120
+        render = self.world.copy()
         render = render.astype(np.uint8)
         render_img = Image.fromarray(render)
         render_img = render_img.resize((200, 200))
