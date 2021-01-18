@@ -12,6 +12,7 @@ class EatApple(gym.Env):
         self.world_size = 20
         self.total_reward_num = 10
         self.view_size = 5
+        self.agent_per_group = 2
         self.action_space = spaces.Box(
             low=np.array([0, 0]), high=np.array([3, 3]), dtype=int
         )

@@ -8,3 +8,6 @@ learning_strategy:
     in_channels: 1
     num_action: 4
   cpu_num: 8
+  group_num: 440
+  elite_ratio: 0.1
+  init_sigma: 2
