@@ -1,0 +1,3 @@
+# @package env
+_target_: envs.eat_apple.EatApple
+random_goal: False

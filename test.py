@@ -6,7 +6,7 @@ import torch
 from envs import EatApple
 from networks import EatAppleModel
 
-save_dir = "outputs/2021-01-18/00-01-59/saved_models/ep_1"
+save_dir = "outputs/2021-01-18/09-26-33/saved_models/ep_173"
 a1_path = save_dir + "/agent1"
 a2_path = save_dir + "/agent2"
 

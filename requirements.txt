@@ -1,0 +1,6 @@
+ray==1.1.0
+torch==1.7.1
+hydra-core==1.1.0.dev2
+opencv-python
+numpy
+gym

@@ -1,0 +1,8 @@
+# @package learning_strategy
+_target_: learning_strategies.gaussian.Gaussian
+env: None
+network: None
+cpu_num: 8
+group_num: 480
+elite_ratio: 0.1
+init_sigma: 2

@@ -4,7 +4,6 @@ import cv2
 import gym
 import numpy as np
 from gym import spaces
-from PIL import Image
 
 
 class EatApple(gym.Env):

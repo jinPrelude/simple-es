@@ -1,0 +1,10 @@
+learning_strategy:
+  _target_: learning_strategies.gaussian.Gaussian
+  env: 
+    _target_: envs.eat_apple.EatApple
+    random_goal: False
+  network:
+    _target_: networks.neural_network.EatAppleModel
+    in_channels: 1
+    num_action: 4
+  cpu_num: 8

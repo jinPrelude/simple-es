@@ -1,4 +1,4 @@
 env: "EatApple"
 network: "EatAppleModel"
-cpu_num: 12
+cpu_num: 8
 learning_strategy: "gaussian"
