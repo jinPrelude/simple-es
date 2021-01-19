@@ -45,20 +45,73 @@ class RnnRolloutWorker:
         return rewards
 
 
-def gen_offspring_group(group: list, sigma: object, group_num: int):
-    groups = []
-    for _ in range(group_num):
-        child_group = []
-        for agent in group:
-            tmp_agent = deepcopy(agent)
-            for param in tmp_agent.parameters():
-                with torch.no_grad():
-                    noise = torch.normal(0, sigma, size=param.size())
-                    param.add_(noise)
+class simple_gaussian_offspring:
+    def __init__(
+        self, init_sigma, sigma_decay, elite_ratio, group_num, agent_per_group
+    ):
+        self.init_sigma = init_sigma
+        self.sigma_decay = sigma_decay
+        self.elite_ratio = elite_ratio
+        self.group_num = group_num
+        self.agent_per_group = agent_per_group
+        self.elite_models = []
 
-            child_group.append(tmp_agent)
-        groups.append(child_group)
-    return groups
+        self.curr_sigma = self.init_sigma
+        self.elite_num = elite_num = int(group_num * elite_ratio)
+
+    @staticmethod
+    def gen_offspring_group(group: list, sigma: object, group_num: int):
+        groups = []
+        for _ in range(group_num):
+            child_group = []
+            for agent in group:
+                tmp_agent = deepcopy(agent)
+                for param in tmp_agent.parameters():
+                    with torch.no_grad():
+                        noise = torch.normal(0, sigma, size=param.size())
+                        param.add_(noise)
+
+                child_group.append(tmp_agent)
+            groups.append(child_group)
+        return groups
+
+    def get_elite_models(self):
+        return self.elite_models
+
+    def init_offspring(self, network):
+        network.init_weights(0, 1e-7)
+
+        self.elite_models = [
+            [network for _ in range(self.agent_per_group)]
+            for _ in range(self.elite_num)
+        ]
+        offspring_array = []
+        for p in self.elite_models:
+            offspring_array.append(p)
+            offspring_array[0:0] = self.gen_offspring_group(
+                p,
+                sigma=self.curr_sigma,
+                group_num=(self.group_num // self.elite_num) - 1,
+            )
+        return offspring_array
+
+    def evaluate(self, result, offsprings):
+        results = sorted(result, key=lambda l: l[1], reverse=True)
+        best_reward = results[0][1]
+        elite_ids = results[: self.elite_num]
+        self.elite_models = []
+        for id in elite_ids:
+            self.elite_models.append(offsprings[id[0][0]][id[0][1]])
+        offsprings = []
+        for p in self.elite_models:
+            offsprings.append(p)
+            offsprings[0:0] = self.gen_offspring_group(
+                p,
+                sigma=self.curr_sigma,
+                group_num=(self.group_num // self.elite_num) - 1,
+            )
+        self.curr_sigma *= self.sigma_decay
+        return offsprings, best_reward, self.curr_sigma
 
 
 class Gaussian(BaseLS):
@@ -70,42 +123,25 @@ class Gaussian(BaseLS):
         self.env = env
         self.agent_per_group = self.env.agent_per_group
         self.group_num = group_num
-        self.elite_num = int(group_num * elite_ratio)
-        self.elite_models = [
-            [self.network for _ in range(self.agent_per_group)]
-            for _ in range(self.elite_num)
-        ]
-
-        self.init_sigma = init_sigma
-        self.sigma_decay = 0.995
+        self.offspring_strategy = simple_gaussian_offspring(
+            init_sigma, 0.995, elite_ratio, group_num, self.agent_per_group
+        )
 
         ray.init()
 
     def run(self):
         if self.cpu_num <= 1:
             self.debug_mode()
-        curr_sigma = self.init_sigma
         start_time = time.time()
+        offsprings = self.offspring_strategy.init_offspring(self.network)
+        offsprings = slice_list(offsprings, self.cpu_num)
+
         ep_num = 0
         # start rollout
         while True:
-            # Init per generation
             ep_num += 1
-            offspring_array = []
 
-            # Generate offsprings
-            for p in self.elite_models:
-                offspring_array.append(p)
-                offspring_array[0:0] = gen_offspring_group(
-                    p,
-                    sigma=curr_sigma,
-                    group_num=(self.group_num // self.elite_num) - 1,
-                )
-
-            # Divide offspring per core and ray.put()
-            offspring_array = slice_list(offspring_array, self.cpu_num)
-            offspring_id = ray.put(offspring_array)
-
+            offspring_id = ray.put(offsprings)
             # ray.put() env
             env_id = ray.put(self.env)
 
@@ -119,37 +155,32 @@ class Gaussian(BaseLS):
             rollout_ids = [actor.rollout.remote() for actor in actors]
 
             # Wait until all the actors are finished
-            rewards = []
+            results = []
             while len(rollout_ids):
                 done_id, rollout_ids = ray.wait(rollout_ids)
                 output = ray.get(done_id)
                 for li in output:
-                    rewards[0:0] = li  # fast way to concatenate lists
+                    results[0:0] = li  # fast way to concatenate lists
 
             # Offspring evaluation
-            rewards = sorted(rewards, key=lambda l: l[1], reverse=True)
-            elite_ids = rewards[: self.elite_num]
-            self.elite_models = []
-            for id in elite_ids:
-                self.elite_models.append(offspring_array[id[0][0]][id[0][1]])
-
-            # Remove ray.put() offsprings
             del offspring_id
+            offsprings, best_reward, curr_sigma = self.offspring_strategy.evaluate(
+                results, offsprings
+            )
+            offsprings = slice_list(offsprings, self.cpu_num)
 
             # print log
             consumed_time = time.time() - start_time
             print(
-                f"episode: {ep_num}, Best reward  {rewards[0][1]}, sigma: {curr_sigma:.3f}, time: {int(consumed_time)}"
+                f"episode: {ep_num}, Best reward  {best_reward}, sigma: {curr_sigma:.3f}, time: {int(consumed_time)}"
             )
 
             # save elite model of the current episode.
             save_dir = "saved_models/" + f"ep_{ep_num}/"
             os.makedirs(save_dir)
-            torch.save(self.elite_models[0][0].state_dict(), save_dir + "agent1")
-            torch.save(self.elite_models[0][1].state_dict(), save_dir + "agent2")
-
-            # decay sigma
-            curr_sigma *= self.sigma_decay
+            elite_group = self.offspring_strategy.get_elite_models()
+            torch.save(elite_group[0][0].state_dict(), save_dir + "agent1")
+            torch.save(elite_group[0][1].state_dict(), save_dir + "agent2")
 
     def debug_mode(self):
         print(
@@ -162,9 +193,7 @@ class Gaussian(BaseLS):
             offspring_array = []
             for p in self.elite_models:
                 offspring_array[0:0] = gen_offspring_group(
-                    p,
-                    sigma=curr_sigma,
-                    group_num=self.group_num // self.elite_num,
+                    p, sigma=curr_sigma, group_num=self.group_num // self.elite_num,
                 )
             offspring_array = slice_list(offspring_array, self.cpu_num)
             rollout_worker = RnnRolloutWorker(self.env, offspring_array, 0)
