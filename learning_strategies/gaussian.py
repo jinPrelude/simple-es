@@ -57,7 +57,7 @@ class simple_gaussian_offspring:
         self.elite_models = []
 
         self.curr_sigma = self.init_sigma
-        self.elite_num = elite_num = int(group_num * elite_ratio)
+        self.elite_num = max(1, int(group_num * elite_ratio))
 
     @staticmethod
     def gen_offspring_group(group: list, sigma: object, group_num: int):
@@ -132,47 +132,52 @@ class Gaussian(BaseLS):
     def run(self):
         if self.cpu_num <= 1:
             self.debug_mode()
-        start_time = time.time()
+
+        # init offsprings
         offsprings = self.offspring_strategy.init_offspring(self.network)
         offsprings = slice_list(offsprings, self.cpu_num)
 
         ep_num = 0
-        # start rollout
         while True:
+            start_time = time.time()
             ep_num += 1
 
+            # ray.put() offsprings & env
             offspring_id = ray.put(offsprings)
-            # ray.put() env
             env_id = ray.put(self.env)
 
-            # Create an actor by the number of cores
+            # create an actor by the number of cores
             actors = [
                 RnnRolloutWorker.remote(env_id, offspring_id, worker_id)
                 for worker_id in range(self.cpu_num)
             ]
 
-            # Rollout actors
+            # start ollout actors
+            rollout_start_time = time.time()
             rollout_ids = [actor.rollout.remote() for actor in actors]
 
-            # Wait until all the actors are finished
+            # wait until all the actors are finished
             results = []
             while len(rollout_ids):
                 done_id, rollout_ids = ray.wait(rollout_ids)
                 output = ray.get(done_id)
                 for li in output:
                     results[0:0] = li  # fast way to concatenate lists
+            rollout_consumed_time = time.time() - rollout_start_time
 
             # Offspring evaluation
             del offspring_id
+            eval_start_time = time.time()
             offsprings, best_reward, curr_sigma = self.offspring_strategy.evaluate(
                 results, offsprings
             )
             offsprings = slice_list(offsprings, self.cpu_num)
+            eval_consumed_time = time.time() - eval_start_time
 
             # print log
             consumed_time = time.time() - start_time
             print(
-                f"episode: {ep_num}, Best reward  {best_reward}, sigma: {curr_sigma:.3f}, time: {int(consumed_time)}"
+                f"episode: {ep_num}, Best reward: {best_reward}, sigma: {curr_sigma:.3f}, time: {consumed_time:.2f}, rollout_t: {rollout_consumed_time:.2f}, eval_t: {eval_consumed_time:.2f}"
             )
 
             # save elite model of the current episode.
@@ -186,34 +191,31 @@ class Gaussian(BaseLS):
         print(
             "You have entered debug mode. Don't forget to detatch ray.remote() of the rollout worker."
         )
-        curr_sigma = self.init_sigma
-        start_time = time.time()
+        # init offsprings
+        offsprings = self.offspring_strategy.init_offspring(self.network)
+        offsprings = slice_list(offsprings, self.cpu_num)
+
         ep_num = 0
+        # start rollout
         while True:
-            offspring_array = []
-            for p in self.elite_models:
-                offspring_array[0:0] = gen_offspring_group(
-                    p, sigma=curr_sigma, group_num=self.group_num // self.elite_num,
-                )
-            offspring_array = slice_list(offspring_array, self.cpu_num)
-            rollout_worker = RnnRolloutWorker(self.env, offspring_array, 0)
-            rewards = rollout_worker.rollout()
-            rewards = sorted(rewards, key=lambda l: l[1], reverse=True)
-            elite_ids = rewards[: self.elite_num]
-            self.elite_models = []
-            for id in elite_ids:
-                self.elite_models.append(offspring_array[id[0][0]][id[0][1]])
+            start_time = time.time()
+            ep_num += 1
+
+            rollout_start_time = time.time()
+            rollout_worker = RnnRolloutWorker(self.env, offsprings, 0)
+            results = rollout_worker.rollout()
+            rollout_consumed_time = time.time() - rollout_start_time
+
+            # Offspring evaluation
+            eval_start_time = time.time()
+            offsprings, best_reward, curr_sigma = self.offspring_strategy.evaluate(
+                results, offsprings
+            )
+            offsprings = slice_list(offsprings, self.cpu_num)
+            eval_consumed_time = time.time() - eval_start_time
+
             # print log
             consumed_time = time.time() - start_time
             print(
-                f"episode: {ep_num}, Best reward  {rewards[0][1]}, sigma: {curr_sigma:.3f}, time: {int(consumed_time)}"
+                f"episode: {ep_num}, Best reward: {best_reward}, sigma: {curr_sigma:.3f}, time: {consumed_time:.2f}, rollout_t: {rollout_consumed_time:.2f}, eval_t: {eval_consumed_time:.2f}"
             )
-
-            # save elite model of the current episode.
-            save_dir = "saved_models/" + f"ep_{ep_num}/"
-            os.makedirs(save_dir)
-            torch.save(self.elite_models[0][0].state_dict(), save_dir + "agent1")
-            torch.save(self.elite_models[0][1].state_dict(), save_dir + "agent2")
-
-            # decay sigma
-            curr_sigma *= self.sigma_decay
