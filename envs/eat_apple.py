@@ -1,4 +1,5 @@
 import random
+from copy import deepcopy
 
 import cv2
 import gym
@@ -40,7 +41,7 @@ class EatApple:
             (7, 3),
             (3, 10),
         ]
-        self.init_agent_pos_list = [np.array([9, 9]), np.array([17, 7])]
+        self.init_agent_pos_list = [np.array([3, 3]), np.array([3, 4])]
         self.current_reward_num = self.total_reward_num
         self.max_step = 500
         self.current_step = 0
@@ -96,7 +97,7 @@ class EatApple:
                 ), "agent can't get place. try widen the map."
                 self.agent_pos_list.append(tmp_pos)
         else:
-            self.agent_pos_list = self.init_agent_pos_list
+            self.agent_pos_list = deepcopy(self.init_agent_pos_list)
         for agent_pos in self.agent_pos_list:
             self.world[agent_pos[0], agent_pos[1]] = self.agent_color
 
@@ -178,10 +179,8 @@ if __name__ == "__main__":
         while not d:
             t += 1
             env.render()
-            # action1 = int(input())
             actions = [random.randint(0, 3) for _ in range(agent_num)]
+            # actions[0] = int(input())
             s, r, d = env.step(actions)
             ep_r += r
-            if t > 10:
-                d = True
         print("reward: ", ep_r)
