@@ -120,7 +120,7 @@ class Gaussian(BaseLS):
         self.network.init_weights(0, 1e-7)
         self.env = env
         self.offspring_strategy = offspring_strategy
-        self.offspring_strategy.set_agent_per_group(self.env.agent_per_group)
+        self.offspring_strategy.set_agent_per_group(self.env.agent_num)
         ray.init()
 
     def run(self):
