@@ -60,7 +60,7 @@ class simple_gaussian_offspring:
         self.elite_num = max(1, int(group_num * elite_ratio))
 
     @staticmethod
-    def gen_offspring_group(group: list, sigma: object, group_num: int):
+    def _gen_mutation(group: list, sigma: object, group_num: int):
         groups = []
         for _ in range(group_num):
             child_group = []
@@ -75,6 +75,17 @@ class simple_gaussian_offspring:
             groups.append(child_group)
         return groups
 
+    def _gen_offsprings(self):
+        offspring_array = []
+        for p in self.elite_models:
+            offspring_array.append(p)
+            offspring_array[0:0] = self._gen_mutation(
+                p,
+                sigma=self.curr_sigma,
+                group_num=(self.group_num // self.elite_num) - 1,
+            )
+        return offspring_array
+
     def get_elite_models(self):
         return self.elite_models
 
@@ -85,15 +96,7 @@ class simple_gaussian_offspring:
             [network for _ in range(self.agent_per_group)]
             for _ in range(self.elite_num)
         ]
-        offspring_array = []
-        for p in self.elite_models:
-            offspring_array.append(p)
-            offspring_array[0:0] = self.gen_offspring_group(
-                p,
-                sigma=self.curr_sigma,
-                group_num=(self.group_num // self.elite_num) - 1,
-            )
-        return offspring_array
+        return self._gen_offsprings()
 
     def evaluate(self, result, offsprings):
         results = sorted(result, key=lambda l: l[1], reverse=True)
@@ -102,14 +105,7 @@ class simple_gaussian_offspring:
         self.elite_models = []
         for id in elite_ids:
             self.elite_models.append(offsprings[id[0][0]][id[0][1]])
-        offsprings = []
-        for p in self.elite_models:
-            offsprings.append(p)
-            offsprings[0:0] = self.gen_offspring_group(
-                p,
-                sigma=self.curr_sigma,
-                group_num=(self.group_num // self.elite_num) - 1,
-            )
+        offsprings = self._gen_offsprings()
         self.curr_sigma *= self.sigma_decay
         return offsprings, best_reward, self.curr_sigma
 
