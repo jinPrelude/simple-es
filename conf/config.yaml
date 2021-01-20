@@ -1,5 +1,11 @@
 learning_strategy:
   _target_: learning_strategies.gaussian.Gaussian
+  offspring_strategy:
+    _target_: learning_strategies.gaussian.simple_gaussian_offspring
+    init_sigma: 2
+    sigma_decay: 0.999
+    elite_ratio: 0.1
+    group_num: 440
   env: 
     _target_: envs.eat_apple.EatApple
     random_goal: False
@@ -8,6 +14,3 @@ learning_strategy:
     in_channels: 1
     num_action: 4
   cpu_num: 8
-  group_num: 440
-  elite_ratio: 0.1
-  init_sigma: 2

@@ -47,7 +47,7 @@ class RnnRolloutWorker:
 
 class simple_gaussian_offspring:
     def __init__(
-        self, init_sigma, sigma_decay, elite_ratio, group_num, agent_per_group
+        self, init_sigma, sigma_decay, elite_ratio, group_num, agent_per_group=None
     ):
         self.init_sigma = init_sigma
         self.sigma_decay = sigma_decay
@@ -89,7 +89,11 @@ class simple_gaussian_offspring:
     def get_elite_models(self):
         return self.elite_models
 
+    def set_agent_per_group(self, agent_per_group):
+        self.agent_per_group = agent_per_group
+
     def init_offspring(self, network):
+        assert self.agent_per_group, "Call agent_per_group() before initialize."
         network.init_weights(0, 1e-7)
 
         self.elite_models = [
@@ -111,18 +115,12 @@ class simple_gaussian_offspring:
 
 
 class Gaussian(BaseLS):
-    def __init__(
-        self, env, network, cpu_num, group_num=480, elite_ratio=0.1, init_sigma=2
-    ):
+    def __init__(self, offspring_strategy, env, network, cpu_num):
         super().__init__(env, network, cpu_num)
         self.network.init_weights(0, 1e-7)
         self.env = env
-        self.agent_per_group = self.env.agent_per_group
-        self.group_num = group_num
-        self.offspring_strategy = simple_gaussian_offspring(
-            init_sigma, 0.995, elite_ratio, group_num, self.agent_per_group
-        )
-
+        self.offspring_strategy = offspring_strategy
+        self.offspring_strategy.set_agent_per_group(self.env.agent_per_group)
         ray.init()
 
     def run(self):
