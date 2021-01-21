@@ -21,24 +21,23 @@ class RnnRolloutWorker:
 
     def rollout(self):
         rewards = []
-        for i, (model1, model2) in enumerate(self.groups):
-            (n1, n2) = self.env.reset()
-            n1 = torch.from_numpy(n1[np.newaxis, ...]).float()
-            n2 = torch.from_numpy(n2[np.newaxis, ...]).float()
-            hidden1 = model1.init_hidden()
-            hidden2 = model2.init_hidden()
+        for i, models in enumerate(self.groups):
+            states = self.env.reset()
+            hidden_states = {}
+            for k, model in models.items():
+                hidden_states[k] = model.init_hidden()
+
             done = False
             episode_reward = 0
             while not done:
+                actions = {}
                 with torch.no_grad():
                     # ray.util.pdb.set_trace()
-                    action1, hidden1 = model1(n1, hidden1)
-                    action2, hidden2 = model2(n2, hidden2)
-                action1 = torch.argmax(action1).detach().numpy()
-                action2 = torch.argmax(action2).detach().numpy()
-                (n1, n2), r, done = self.env.step([action1, action2])
-                n1 = torch.from_numpy(n1[np.newaxis, ...]).float()
-                n2 = torch.from_numpy(n2[np.newaxis, ...]).float()
+                    for k, model in models.items():
+                        s = torch.from_numpy(states[k][np.newaxis, ...]).float()
+                        a, hidden_states[k] = model(s, hidden_states[k])
+                        actions[k] = torch.argmax(a).detach().numpy()
+                states, r, done = self.env.step(actions)
                 # self.env.render()
                 episode_reward += r
             rewards.append([(self.worker_id, i), episode_reward])
@@ -46,34 +45,31 @@ class RnnRolloutWorker:
 
 
 class simple_gaussian_offspring:
-    def __init__(
-        self, init_sigma, sigma_decay, elite_ratio, group_num, agent_per_group=None
-    ):
+    def __init__(self, init_sigma, sigma_decay, elite_ratio, group_num):
         self.init_sigma = init_sigma
         self.sigma_decay = sigma_decay
         self.elite_ratio = elite_ratio
         self.group_num = group_num
-        self.agent_per_group = agent_per_group
         self.elite_models = []
 
         self.curr_sigma = self.init_sigma
         self.elite_num = max(1, int(group_num * elite_ratio))
 
     @staticmethod
-    def _gen_mutation(group: list, sigma: object, group_num: int):
-        groups = []
+    def _gen_mutation(group: dict, sigma: object, group_num: int):
+        offsprings_group = []
         for _ in range(group_num):
-            child_group = []
-            for agent in group:
+            agent_group = {}
+            for agent_id, agent in group.items():
                 tmp_agent = deepcopy(agent)
                 for param in tmp_agent.parameters():
                     with torch.no_grad():
                         noise = torch.normal(0, sigma, size=param.size())
                         param.add_(noise)
 
-                child_group.append(tmp_agent)
-            groups.append(child_group)
-        return groups
+                agent_group[agent_id] = tmp_agent
+            offsprings_group.append(agent_group)
+        return offsprings_group
 
     def _gen_offsprings(self):
         offspring_array = []
@@ -89,17 +85,13 @@ class simple_gaussian_offspring:
     def get_elite_models(self):
         return self.elite_models
 
-    def set_agent_per_group(self, agent_per_group):
-        self.agent_per_group = agent_per_group
-
-    def init_offspring(self, network):
-        assert self.agent_per_group, "Call agent_per_group() before initialize."
+    def init_offspring(self, network, agent_ids):
         network.init_weights(0, 1e-7)
-
-        self.elite_models = [
-            [network for _ in range(self.agent_per_group)]
-            for _ in range(self.elite_num)
-        ]
+        for _ in range(self.elite_num):
+            group = {}
+            for agent_id in agent_ids:
+                group[agent_id] = network
+            self.elite_models.append(group)
         return self._gen_offsprings()
 
     def evaluate(self, result, offsprings):
@@ -120,7 +112,6 @@ class Gaussian(BaseLS):
         self.network.init_weights(0, 1e-7)
         self.env = env
         self.offspring_strategy = offspring_strategy
-        self.offspring_strategy.set_agent_per_group(self.env.agent_num)
         ray.init()
 
     def run(self):
@@ -128,9 +119,12 @@ class Gaussian(BaseLS):
             self.debug_mode()
 
         # init offsprings
-        offsprings = self.offspring_strategy.init_offspring(self.network)
+        offsprings = self.offspring_strategy.init_offspring(
+            self.network, self.env.get_agent_ids()
+        )
         offsprings = slice_list(offsprings, self.cpu_num)
 
+        prev_reward = float("-inf")
         ep_num = 0
         while True:
             start_time = time.time()
@@ -175,18 +169,22 @@ class Gaussian(BaseLS):
             )
 
             # save elite model of the current episode.
-            save_dir = "saved_models/" + f"ep_{ep_num}/"
-            os.makedirs(save_dir)
-            elite_group = self.offspring_strategy.get_elite_models()
-            torch.save(elite_group[0][0].state_dict(), save_dir + "agent1")
-            torch.save(elite_group[0][1].state_dict(), save_dir + "agent2")
+            if best_reward > prev_reward:
+                prev_reward = best_reward
+                save_dir = "saved_models/" + f"ep_{ep_num}/"
+                os.makedirs(save_dir)
+                elite_group = self.offspring_strategy.get_elite_models()[0]
+                for k, model in elite_group.items():
+                    torch.save(model.state_dict(), save_dir + f"{k}")
 
     def debug_mode(self):
         print(
             "You have entered debug mode. Don't forget to detatch ray.remote() of the rollout worker."
         )
         # init offsprings
-        offsprings = self.offspring_strategy.init_offspring(self.network)
+        offsprings = self.offspring_strategy.init_offspring(
+            self.network, self.env.get_agent_ids()
+        )
         offsprings = slice_list(offsprings, self.cpu_num)
 
         ep_num = 0

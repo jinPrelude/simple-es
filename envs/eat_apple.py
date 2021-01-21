@@ -27,7 +27,7 @@ class EatApple:
             dtype=np.float,
         )
         self.world = np.zeros([self.world_size, self.world_size])
-        self.agent_pos_list = []
+        self.agent_list = {}
 
         self.apple_pos = [
             (17, 12),
@@ -41,7 +41,7 @@ class EatApple:
             (7, 3),
             (3, 10),
         ]
-        self.init_agent_pos_list = [np.array([3, 3]), np.array([3, 4])]
+        self.init_agent_list = {"0": np.array([3, 3]), "1": np.array([3, 4])}
         self.current_reward_num = self.total_reward_num
         self.max_step = 500
         self.current_step = 0
@@ -65,16 +65,19 @@ class EatApple:
 
         return pos_2d
 
+    def get_agent_ids(self):
+        return [str(x) for x in range(self.agent_num)]
+
     def get_agent_views(self):
-        agent_view_list = []
-        for i in range(self.agent_num):
-            p1 = self.agent_pos_list[i] - np.array(
+        agent_view_list = {}
+        for i in self.agent_list.keys():
+            p1 = self.agent_list[i] - np.array(
                 [self.view_size // 2, self.view_size // 2]
             )
-            p2 = self.agent_pos_list[i] + np.array(
+            p2 = self.agent_list[i] + np.array(
                 [(self.view_size // 2) + 1, (self.view_size // 2) + 1]
             )
-            agent_view_list.append(
+            agent_view_list[i] = (
                 self.world[p1[0] : p2[0], p1[1] : p2[1]][np.newaxis, ...] / 255
             )
         return agent_view_list
@@ -95,11 +98,11 @@ class EatApple:
                 assert isinstance(
                     tmp_pos, np.ndarray
                 ), "agent can't get place. try widen the map."
-                self.agent_pos_list.append(tmp_pos)
+                self.agent_list[str(i)] = tmp_pos
         else:
-            self.agent_pos_list = deepcopy(self.init_agent_pos_list)
-        for agent_pos in self.agent_pos_list:
-            self.world[agent_pos[0], agent_pos[1]] = self.agent_color
+            self.agent_list = deepcopy(self.init_agent_list)
+        for _, pos in self.agent_list.items():
+            self.world[pos[0], pos[1]] = self.agent_color
 
         self.current_reward_num = 10
         self.current_step = 0
@@ -120,9 +123,10 @@ class EatApple:
             2: np.array([0, -1]),
             3: np.array([0, 1]),
         }
-        for i, act in enumerate(actions):
+        for key, act in actions.items():
+            assert key in self.agent_list.keys()
             act = int(act)
-            curr_pos = self.agent_pos_list[i]
+            curr_pos = self.agent_list[key]
             tmp_moved_pos = curr_pos + action_dict[act]
             if self.world[tmp_moved_pos[0], tmp_moved_pos[1]] == self.agent_color:
                 continue
@@ -135,7 +139,7 @@ class EatApple:
             tmp_moved_pos[1] = min(tmp_moved_pos[1], self.world_size - 1 - half_view)
             self.world[curr_pos[0], curr_pos[1]] = self.floor_color
             self.world[tmp_moved_pos[0], tmp_moved_pos[1]] = self.agent_color
-            self.agent_pos_list[i] = tmp_moved_pos
+            self.agent_list[key] = tmp_moved_pos
 
         cur_r_num = np.where(self.world.flatten() == self.apple_color)[0]
         reward = self.current_reward_num - cur_r_num.size
@@ -159,12 +163,12 @@ class EatApple:
         render_img = np.asarray(render_img)
         cv2.imshow("image", render_img)
         views = self.get_agent_views()
-        for i in range(self.agent_num):
-            view = np.squeeze((views[i] * 255).astype(np.uint8))
-            view = Image.fromarray(view)
-            view = view.resize((100, 100))
-            view = np.asarray(view)
-            cv2.imshow(f"agent{i}", view)
+        # for i in range(self.agent_num):
+        #     view = np.squeeze((views[i] * 255).astype(np.uint8))
+        #     view = Image.fromarray(view)
+        #     view = view.resize((100, 100))
+        #     view = np.asarray(view)
+        #     cv2.imshow(f"agent{i}", view)
         cv2.waitKey(30)
 
 
@@ -173,13 +177,16 @@ if __name__ == "__main__":
         agent_num = 2
         env = EatApple(random_goal=False, agent_num=agent_num)
         s = env.reset()
+        agent_ids = s.keys()
         d = False
         ep_r = 0
         t = 0
         while not d:
             t += 1
             env.render()
-            actions = [random.randint(0, 3) for _ in range(agent_num)]
+            actions = {}
+            for i in agent_ids:
+                actions[i] = random.randint(0, 3)
             # actions[0] = int(input())
             s, r, d = env.step(actions)
             ep_r += r
