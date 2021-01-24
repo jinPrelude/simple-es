@@ -14,7 +14,7 @@ def set_seed(seed):
     random.seed(seed)
 
 
-@hydra.main(config_path="conf", config_name="config")
+@hydra.main(config_path="conf", config_name="eat_apple_config")
 def main(cfg: DictConfig):
     print(OmegaConf.to_yaml(cfg))
 
