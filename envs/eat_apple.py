@@ -27,7 +27,7 @@ class EatApple:
             dtype=np.float,
         )
         self.world = np.zeros([self.world_size, self.world_size])
-        self.agent_list = {}
+        self.agent_pos_list = {}
 
         self.apple_pos = [
             (17, 12),
@@ -41,7 +41,7 @@ class EatApple:
             (7, 3),
             (3, 10),
         ]
-        self.init_agent_list = {"0": np.array([3, 3]), "1": np.array([3, 4])}
+        self.init_agent_pos_list = {"0": np.array([3, 3]), "1": np.array([3, 4])}
         self.current_reward_num = self.total_reward_num
         self.max_step = 500
         self.current_step = 0
@@ -68,19 +68,15 @@ class EatApple:
     def get_agent_ids(self):
         return [str(x) for x in range(self.agent_num)]
 
-    def get_agent_views(self):
-        agent_view_list = {}
-        for i in self.agent_list.keys():
-            p1 = self.agent_list[i] - np.array(
-                [self.view_size // 2, self.view_size // 2]
-            )
-            p2 = self.agent_list[i] + np.array(
-                [(self.view_size // 2) + 1, (self.view_size // 2) + 1]
-            )
-            agent_view_list[i] = (
-                self.world[p1[0] : p2[0], p1[1] : p2[1]][np.newaxis, ...] / 255
-            )
-        return agent_view_list
+    def get_agent_views(self, key):
+        p1 = self.agent_pos_list[key] - np.array(
+            [self.view_size // 2, self.view_size // 2]
+        )
+        p2 = self.agent_pos_list[key] + np.array(
+            [(self.view_size // 2) + 1, (self.view_size // 2) + 1]
+        )
+        s = self.world[p1[0] : p2[0], p1[1] : p2[1]][np.newaxis, ...] / 255
+        return s
 
     def reset(self):
         self.world = np.ones([self.world_size, self.world_size]) * self.floor_color
@@ -98,10 +94,10 @@ class EatApple:
                 assert isinstance(
                     tmp_pos, np.ndarray
                 ), "agent can't get place. try widen the map."
-                self.agent_list[str(i)] = tmp_pos
+                self.agent_pos_list[str(i)] = tmp_pos
         else:
-            self.agent_list = deepcopy(self.init_agent_list)
-        for _, pos in self.agent_list.items():
+            self.agent_pos_list = deepcopy(self.init_agent_pos_list)
+        for _, pos in self.agent_pos_list.items():
             self.world[pos[0], pos[1]] = self.agent_color
 
         self.current_reward_num = 10
@@ -112,7 +108,10 @@ class EatApple:
             self.apple_pos = self.generate_apple()
         for pos in self.apple_pos:
             self.world[pos] = self.apple_color
-        return self.get_agent_views()
+        return_list = {}
+        for key, _ in self.agent_pos_list.items():
+            return_list[key] = {"state": self.get_agent_views(key)}
+        return return_list
 
     def step(self, actions):
         done = False
@@ -123,37 +122,44 @@ class EatApple:
             2: np.array([0, -1]),
             3: np.array([0, 1]),
         }
-        for key, act in actions.items():
-            assert key in self.agent_list.keys()
-            act = int(act)
-            curr_pos = self.agent_list[key]
-            tmp_moved_pos = curr_pos + action_dict[act]
-            if self.world[tmp_moved_pos[0], tmp_moved_pos[1]] == self.agent_color:
-                continue
-            half_view = self.view_size // 2
-
-            tmp_moved_pos[0] = max(tmp_moved_pos[0], half_view)
-            tmp_moved_pos[0] = min(tmp_moved_pos[0], self.world_size - 1 - half_view)
-
-            tmp_moved_pos[1] = max(tmp_moved_pos[1], half_view)
-            tmp_moved_pos[1] = min(tmp_moved_pos[1], self.world_size - 1 - half_view)
-            self.world[curr_pos[0], curr_pos[1]] = self.floor_color
-            self.world[tmp_moved_pos[0], tmp_moved_pos[1]] = self.agent_color
-            self.agent_list[key] = tmp_moved_pos
-
-        cur_r_num = np.where(self.world.flatten() == self.apple_color)[0]
-        reward = self.current_reward_num - cur_r_num.size
-        self.current_reward_num = cur_r_num.size
+        return_dict = {}
         self.current_step += 1
         if self.current_reward_num == 0 or self.current_step >= self.max_step:
             done = True
-            self.reset()
+        total_reward = 0
+        for key, act in actions.items():
+            transition = {}
+            assert key in self.agent_pos_list.keys()
+            act = int(act)
+            curr_pos = self.agent_pos_list[key]
+            tmp_moved_pos = curr_pos + action_dict[act]
+            reward = 0
+            if self.world[tmp_moved_pos[0], tmp_moved_pos[1]] != self.agent_color:
+                half_view = self.view_size // 2
 
-        return (
-            self.get_agent_views(),
-            reward,
-            done,
-        )
+                tmp_moved_pos[0] = max(tmp_moved_pos[0], half_view)
+                tmp_moved_pos[0] = min(
+                    tmp_moved_pos[0], self.world_size - 1 - half_view
+                )
+
+                tmp_moved_pos[1] = max(tmp_moved_pos[1], half_view)
+                tmp_moved_pos[1] = min(
+                    tmp_moved_pos[1], self.world_size - 1 - half_view
+                )
+                self.world[curr_pos[0], curr_pos[1]] = self.floor_color
+                self.world[tmp_moved_pos[0], tmp_moved_pos[1]] = self.agent_color
+                self.agent_pos_list[key] = tmp_moved_pos
+                cur_r_num = np.where(self.world.flatten() == self.apple_color)[0]
+                reward = self.current_reward_num - cur_r_num.size
+                total_reward += reward
+                self.current_reward_num = cur_r_num.size
+            transition["state"] = self.get_agent_views(key)
+            transition["reward"] = reward
+            transition["done"] = done
+            transition["info"] = {}
+            return_dict[key] = transition
+
+        return return_dict, total_reward, done, {}
 
     def render(self, mode="human"):
         render = self.world.copy()
@@ -162,7 +168,7 @@ class EatApple:
         render_img = render_img.resize((200, 200))
         render_img = np.asarray(render_img)
         cv2.imshow("image", render_img)
-        views = self.get_agent_views()
+        # views = self.get_agent_views()
         # for i in range(self.agent_num):
         #     view = np.squeeze((views[i] * 255).astype(np.uint8))
         #     view = Image.fromarray(view)
@@ -188,6 +194,6 @@ if __name__ == "__main__":
             for i in agent_ids:
                 actions[i] = random.randint(0, 3)
             # actions[0] = int(input())
-            s, r, d = env.step(actions)
+            obs, r, d = env.step(actions)
             ep_r += r
         print("reward: ", ep_r)

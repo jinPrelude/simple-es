@@ -13,34 +13,37 @@ from .base import BaseLS
 
 @ray.remote
 class RnnRolloutWorker:
-    def __init__(self, env, offspring_id, worker_id):
+    def __init__(self, env, offspring_id, worker_id, eval_ep_num=10):
         os.environ["MKL_NUM_THREADS"] = "1"
         self.env = env
         self.groups = offspring_id[worker_id]
         self.worker_id = worker_id
+        self.eval_ep_num = eval_ep_num
 
     def rollout(self):
         rewards = []
         for i, models in enumerate(self.groups):
-            states = self.env.reset()
-            hidden_states = {}
-            for k, model in models.items():
-                hidden_states[k] = model.init_hidden()
-
-            done = False
-            episode_reward = 0
-            while not done:
-                actions = {}
-                with torch.no_grad():
-                    # ray.util.pdb.set_trace()
-                    for k, model in models.items():
-                        s = torch.from_numpy(states[k][np.newaxis, ...]).float()
-                        a, hidden_states[k] = model(s, hidden_states[k])
-                        actions[k] = torch.argmax(a).detach().numpy()
-                states, r, done = self.env.step(actions)
-                # self.env.render()
-                episode_reward += r
-            rewards.append([(self.worker_id, i), episode_reward])
+            total_reward = 0
+            for _ in range(self.eval_ep_num):
+                states = self.env.reset()
+                hidden_states = {}
+                done = False
+                for k, model in models.items():
+                    hidden_states[k] = model.init_hidden()
+                while not done:
+                    actions = {}
+                    with torch.no_grad():
+                        # ray.util.pdb.set_trace()
+                        for k, model in models.items():
+                            s = torch.from_numpy(
+                                states[k]["state"][np.newaxis, ...]
+                            ).float()
+                            a, hidden_states[k] = model(s, hidden_states[k])
+                            actions[k] = torch.argmax(a).detach().numpy()
+                    states, r, done, info = self.env.step(actions)
+                    # self.env.render()
+                    total_reward += r
+            rewards.append([(self.worker_id, i), total_reward / self.eval_ep_num])
         return rewards
 
 
@@ -165,17 +168,15 @@ class Gaussian(BaseLS):
             # print log
             consumed_time = time.time() - start_time
             print(
-                f"episode: {ep_num}, Best reward: {best_reward}, sigma: {curr_sigma:.3f}, time: {consumed_time:.2f}, rollout_t: {rollout_consumed_time:.2f}, eval_t: {eval_consumed_time:.2f}"
+                f"episode: {ep_num}, Best reward: {best_reward:.2f}, sigma: {curr_sigma:.3f}, time: {consumed_time:.2f}, rollout_t: {rollout_consumed_time:.2f}, eval_t: {eval_consumed_time:.2f}"
             )
 
-            # save elite model of the current episode.
-            if best_reward > prev_reward:
-                prev_reward = best_reward
-                save_dir = "saved_models/" + f"ep_{ep_num}/"
-                os.makedirs(save_dir)
-                elite_group = self.offspring_strategy.get_elite_models()[0]
-                for k, model in elite_group.items():
-                    torch.save(model.state_dict(), save_dir + f"{k}")
+            prev_reward = best_reward
+            save_dir = "saved_models/" + f"ep_{ep_num}/"
+            os.makedirs(save_dir)
+            elite_group = self.offspring_strategy.get_elite_models()[0]
+            for k, model in elite_group.items():
+                torch.save(model.state_dict(), save_dir + f"{k}")
 
     def debug_mode(self):
         print(
@@ -209,5 +210,5 @@ class Gaussian(BaseLS):
             # print log
             consumed_time = time.time() - start_time
             print(
-                f"episode: {ep_num}, Best reward: {best_reward}, sigma: {curr_sigma:.3f}, time: {consumed_time:.2f}, rollout_t: {rollout_consumed_time:.2f}, eval_t: {eval_consumed_time:.2f}"
+                f"episode: {ep_num}, Best reward: {best_reward:.2f}, sigma: {curr_sigma:.3f}, time: {consumed_time:.2f}, rollout_t: {rollout_consumed_time:.2f}, eval_t: {eval_consumed_time:.2f}"
             )
