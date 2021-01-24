@@ -1,3 +1,4 @@
+import logging
 import random
 
 import hydra
@@ -16,9 +17,10 @@ def set_seed(seed):
 
 @hydra.main(config_path="conf", config_name="eat_apple_config")
 def main(cfg: DictConfig):
+    logger = logging.getLogger("logger")
     print(OmegaConf.to_yaml(cfg))
 
-    ls = hydra.utils.instantiate(cfg.learning_strategy)
+    ls = hydra.utils.instantiate(cfg.learning_strategy, logger=logger)
     ls.run()
 
 

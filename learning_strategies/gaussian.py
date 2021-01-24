@@ -110,9 +110,10 @@ class simple_gaussian_offspring:
 
 
 class Gaussian(BaseLS):
-    def __init__(self, offspring_strategy, env, network, cpu_num):
+    def __init__(self, logger, offspring_strategy, env, network, cpu_num):
         super().__init__(env, network, cpu_num)
         self.network.init_weights(0, 1e-7)
+        self.logger = logger
         self.env = env
         self.offspring_strategy = offspring_strategy
         ray.init()
@@ -167,7 +168,7 @@ class Gaussian(BaseLS):
 
             # print log
             consumed_time = time.time() - start_time
-            print(
+            self.logger.info(
                 f"episode: {ep_num}, Best reward: {best_reward:.2f}, sigma: {curr_sigma:.3f}, time: {consumed_time:.2f}, rollout_t: {rollout_consumed_time:.2f}, eval_t: {eval_consumed_time:.2f}"
             )
 
@@ -179,7 +180,7 @@ class Gaussian(BaseLS):
                 torch.save(model.state_dict(), save_dir + f"{k}")
 
     def debug_mode(self):
-        print(
+        self.logger.info(
             "You have entered debug mode. Don't forget to detatch ray.remote() of the rollout worker."
         )
         # init offsprings
@@ -209,6 +210,6 @@ class Gaussian(BaseLS):
 
             # print log
             consumed_time = time.time() - start_time
-            print(
+            self.logger.info(
                 f"episode: {ep_num}, Best reward: {best_reward:.2f}, sigma: {curr_sigma:.3f}, time: {consumed_time:.2f}, rollout_t: {rollout_consumed_time:.2f}, eval_t: {eval_consumed_time:.2f}"
             )
