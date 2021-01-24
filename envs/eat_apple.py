@@ -10,7 +10,13 @@ from PIL import Image
 
 class EatApple:
     def __init__(
-        self, world_size=20, reward_num=10, view_size=5, agent_num=2, random_goal=True
+        self,
+        world_size=20,
+        reward_num=10,
+        view_size=5,
+        agent_num=2,
+        random_goal=True,
+        max_step=500,
     ):
         self.random_goal = random_goal
         self.world_size = world_size
@@ -29,41 +35,36 @@ class EatApple:
         self.world = np.zeros([self.world_size, self.world_size])
         self.agent_pos_list = {}
 
-        self.apple_pos = [
-            (17, 12),
-            (2, 10),
-            (2, 10),
-            (14, 3),
-            (5, 7),
-            (11, 5),
-            (6, 12),
-            (5, 15),
-            (7, 3),
-            (3, 10),
-        ]
-        self.init_agent_pos_list = {"0": np.array([3, 3]), "1": np.array([3, 4])}
+        self.fixed_apple_pos = [130, 147, 178, 151, 28, 33, 116, 81, 160, 138]
+        self.fixed_agent_pos = [112, 24]
         self.current_reward_num = self.total_reward_num
-        self.max_step = 500
+        self.max_step = max_step
         self.current_step = 0
 
         self.floor_color = 1
         self.agent_color = 126
         self.apple_color = 250
 
-    def generate_apple(self):
-        reward_gen_size = self.world_size - (self.view_size // 2) * 2
-        rand_pos_1d = [
-            random.randint(0, pow(reward_gen_size, 2) - 1)
-            for _ in range(self.total_reward_num)
-        ]
-        pos_2d = []
+    def _init_world(self):
         pad = self.view_size // 2
-        for pos in rand_pos_1d:
-            pos_2d.append(
-                ((pos // reward_gen_size) + pad, (pos % reward_gen_size) + pad)
-            )
-
-        return pos_2d
+        self.world = np.ones([self.world_size, self.world_size]) * self.floor_color
+        if not self.random_goal and self.agent_num != 2:
+            raise AssertionError("fixed goal only support 2 agents.")
+        reward_gen_size = self.world_size - (self.view_size // 2) * 2
+        pos_ids = [x for x in range(pow(reward_gen_size, 2) - 1)]
+        pos_ids = random.sample(pos_ids, self.total_reward_num + self.agent_num)
+        apple_pos_1d = pos_ids[: self.total_reward_num]
+        agent_pos_1d = pos_ids[self.total_reward_num :]
+        if not self.random_goal:
+            apple_pos_1d = self.fixed_apple_pos
+            agent_pos_1d = self.fixed_agent_pos
+        for pos in apple_pos_1d:
+            pos = ((pos // reward_gen_size) + pad, (pos % reward_gen_size) + pad)
+            self.world[pos] = self.apple_color
+        for i, pos in enumerate(agent_pos_1d):
+            pos = ((pos // reward_gen_size) + pad, (pos % reward_gen_size) + pad)
+            self.agent_pos_list[str(i)] = pos
+            self.world[pos] = self.agent_color
 
     def get_agent_ids(self):
         return [str(x) for x in range(self.agent_num)]
@@ -79,35 +80,12 @@ class EatApple:
         return s
 
     def reset(self):
-        self.world = np.ones([self.world_size, self.world_size]) * self.floor_color
-        assert (
-            self.agent_num == 2 and not self.random_goal
-        ), "fixed goal only support 2 agents."
-        if self.random_goal:
-            # reset agent positions.
-            # TODO: Handle agent position overlap.
-            for i in range(self.agent_num):
-                tmp_pos = 0
-                pos_min = self.view_size // 2
-                pos_max = self.world_size - (self.view_size // 2)
-                tmp_pos = np.random.randint(pos_min, pos_max, (2))  # 2 for x, y
-                assert isinstance(
-                    tmp_pos, np.ndarray
-                ), "agent can't get place. try widen the map."
-                self.agent_pos_list[str(i)] = tmp_pos
-        else:
-            self.agent_pos_list = deepcopy(self.init_agent_pos_list)
-        for _, pos in self.agent_pos_list.items():
-            self.world[pos[0], pos[1]] = self.agent_color
+
+        self._init_world()
 
         self.current_reward_num = 10
         self.current_step = 0
 
-        # generate apple
-        if self.random_goal:
-            self.apple_pos = self.generate_apple()
-        for pos in self.apple_pos:
-            self.world[pos] = self.apple_color
         return_list = {}
         for key, _ in self.agent_pos_list.items():
             return_list[key] = {"state": self.get_agent_views(key)}
@@ -181,7 +159,7 @@ class EatApple:
 if __name__ == "__main__":
     for _ in range(100):
         agent_num = 2
-        env = EatApple(random_goal=False, agent_num=agent_num)
+        env = EatApple(agent_num=agent_num, max_step=100)
         s = env.reset()
         agent_ids = s.keys()
         d = False
@@ -194,6 +172,6 @@ if __name__ == "__main__":
             for i in agent_ids:
                 actions[i] = random.randint(0, 3)
             # actions[0] = int(input())
-            obs, r, d = env.step(actions)
+            obs, r, d, _ = env.step(actions)
             ep_r += r
         print("reward: ", ep_r)
