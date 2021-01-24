@@ -22,7 +22,8 @@ class GymWrapper:
         transition = {}
         s, r, d, info = self.env.step(action["0"])
         if self.max_step:
-            d = True if self.curr_step >= self.max_step else False
+            if self.curr_step >= self.max_step or d:
+                d = True
         transition["state"] = s
         transition["reward"] = r
         transition["done"] = d
