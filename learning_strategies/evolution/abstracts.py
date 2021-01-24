@@ -1,7 +1,7 @@
 from abc import *
 
 
-class BaseLS(metaclass=ABCMeta):
+class BaseESLoop(metaclass=ABCMeta):
     @abstractmethod
     def __init__(self, env, network, cpu_num):
         self.env = env

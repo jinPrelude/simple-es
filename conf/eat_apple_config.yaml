@@ -1,7 +1,7 @@
 learning_strategy:
-  _target_: learning_strategies.gaussian.Gaussian
+  _target_: learning_strategies.evolution.loop.ESLoop
   offspring_strategy:
-    _target_: learning_strategies.gaussian.simple_gaussian_offspring
+    _target_: learning_strategies.evolution.offspring_strategies.simple_gaussian_offspring
     init_sigma: 2
     sigma_decay: 0.999
     elite_ratio: 0.1

@@ -6,8 +6,6 @@ import numpy as np
 import torch
 from omegaconf import DictConfig, OmegaConf
 
-from learning_strategies import Gaussian
-
 
 def set_seed(seed):
     torch.manual_seed(seed)
@@ -15,7 +13,7 @@ def set_seed(seed):
     random.seed(seed)
 
 
-@hydra.main(config_path="conf", config_name="eat_apple_config")
+@hydra.main(config_path="conf", config_name="lunar_lander_config")
 def main(cfg: DictConfig):
     logger = logging.getLogger("logger")
     print(OmegaConf.to_yaml(cfg))

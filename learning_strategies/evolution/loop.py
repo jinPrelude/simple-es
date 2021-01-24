@@ -5,116 +5,19 @@ from copy import deepcopy
 import numpy as np
 import ray
 import torch
+from hydra.utils import instantiate
 
 from utils import slice_list
 
-from .base import BaseLS
+from .abstracts import BaseESLoop
+from .rollout_workers import RnnRolloutWorker
 
 
-@ray.remote
-class RnnRolloutWorker:
-    def __init__(self, env, offspring_id, worker_id, eval_ep_num=10):
-        os.environ["MKL_NUM_THREADS"] = "1"
-        self.env = env
-        self.groups = offspring_id[worker_id]
-        self.worker_id = worker_id
-        self.eval_ep_num = eval_ep_num
-
-    def rollout(self):
-        rewards = []
-        for i, models in enumerate(self.groups):
-            total_reward = 0
-            for _ in range(self.eval_ep_num):
-                states = self.env.reset()
-                hidden_states = {}
-                done = False
-                for k, model in models.items():
-                    hidden_states[k] = model.init_hidden()
-                while not done:
-                    actions = {}
-                    with torch.no_grad():
-                        # ray.util.pdb.set_trace()
-                        for k, model in models.items():
-                            s = torch.from_numpy(
-                                states[k]["state"][np.newaxis, ...]
-                            ).float()
-                            a, hidden_states[k] = model(s, hidden_states[k])
-                            actions[k] = torch.argmax(a).detach().numpy()
-                    states, r, done, info = self.env.step(actions)
-                    # self.env.render()
-                    total_reward += r
-            rewards.append([(self.worker_id, i), total_reward / self.eval_ep_num])
-        return rewards
-
-
-class simple_gaussian_offspring:
-    def __init__(self, init_sigma, sigma_decay, elite_ratio, group_num):
-        self.init_sigma = init_sigma
-        self.sigma_decay = sigma_decay
-        self.elite_ratio = elite_ratio
-        self.group_num = group_num
-        self.elite_models = []
-
-        self.curr_sigma = self.init_sigma
-        self.elite_num = max(1, int(group_num * elite_ratio))
-
-    @staticmethod
-    def _gen_mutation(group: dict, sigma: object, group_num: int):
-        offsprings_group = []
-        for _ in range(group_num):
-            agent_group = {}
-            for agent_id, agent in group.items():
-                tmp_agent = deepcopy(agent)
-                for param in tmp_agent.parameters():
-                    with torch.no_grad():
-                        noise = torch.normal(0, sigma, size=param.size())
-                        param.add_(noise)
-
-                agent_group[agent_id] = tmp_agent
-            offsprings_group.append(agent_group)
-        return offsprings_group
-
-    def _gen_offsprings(self):
-        offspring_array = []
-        for p in self.elite_models:
-            offspring_array.append(p)
-            offspring_array[0:0] = self._gen_mutation(
-                p,
-                sigma=self.curr_sigma,
-                group_num=(self.group_num // self.elite_num) - 1,
-            )
-        return offspring_array
-
-    def get_elite_models(self):
-        return self.elite_models
-
-    def init_offspring(self, network, agent_ids):
-        network.init_weights(0, 1e-7)
-        for _ in range(self.elite_num):
-            group = {}
-            for agent_id in agent_ids:
-                group[agent_id] = network
-            self.elite_models.append(group)
-        return self._gen_offsprings()
-
-    def evaluate(self, result, offsprings):
-        results = sorted(result, key=lambda l: l[1], reverse=True)
-        best_reward = results[0][1]
-        elite_ids = results[: self.elite_num]
-        self.elite_models = []
-        for id in elite_ids:
-            self.elite_models.append(offsprings[id[0][0]][id[0][1]])
-        offsprings = self._gen_offsprings()
-        self.curr_sigma *= self.sigma_decay
-        return offsprings, best_reward, self.curr_sigma
-
-
-class Gaussian(BaseLS):
+class ESLoop(BaseESLoop):
     def __init__(self, logger, offspring_strategy, env, network, cpu_num):
         super().__init__(env, network, cpu_num)
         self.network.init_weights(0, 1e-7)
         self.logger = logger
-        self.env = env
         self.offspring_strategy = offspring_strategy
         ray.init()
 

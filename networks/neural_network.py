@@ -13,7 +13,7 @@ class DQNModel(nn.Module):
                 i.e The number of most recent frames stacked together as describe in the paper
             num_actions: number of action-value to output, one-to-one correspondence to action in game.
         """
-        super(DQNModel, self).__init__()
+        super().__init__()
         self.conv1 = nn.Conv2d(in_channels, 32, kernel_size=8, stride=4)
         self.conv2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
         self.conv3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
@@ -30,7 +30,7 @@ class DQNModel(nn.Module):
 
 class EatAppleModel(nn.Module):
     def __init__(self, in_channels=1, num_action=4):
-        super(EatAppleModel, self).__init__()
+        super().__init__()
         self.num_action = num_action
         self.conv1 = nn.Conv2d(in_channels, 16, kernel_size=3, stride=1)
         self.conv2 = nn.Conv2d(16, 16, kernel_size=3, stride=1)
@@ -65,7 +65,7 @@ class EatAppleModel(nn.Module):
 
 class GymEnvModel(nn.Module):
     def __init__(self, num_state=8, num_action=4):
-        super(GymEnvModel, self).__init__()
+        super().__init__()
         self.num_action = num_action
         self.fc1 = nn.Linear(num_state, 32)
         self.gru = nn.GRU(32, 32 + num_action)
