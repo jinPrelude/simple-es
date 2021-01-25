@@ -1,40 +1,50 @@
 import os
+from copy import deepcopy
 
+import hydra
 import numpy as np
 import torch
+from hydra.utils import instantiate, to_absolute_path
+from omegaconf import DictConfig, OmegaConf
 
-from envs import EatApple
-from networks import EatAppleModel
 
-save_dir = "outputs/2021-01-18/09-26-33/saved_models/ep_173"
-a1_path = save_dir + "/agent1"
-a2_path = save_dir + "/agent2"
+@hydra.main(config_path="conf", config_name="eat_apple_config")
+def main(cfg: DictConfig):
+    print(OmegaConf.to_yaml(cfg))
 
-model1 = EatAppleModel()
-model2 = EatAppleModel()
-model1.load_state_dict(torch.load(a1_path))
-model2.load_state_dict(torch.load(a2_path))
-model1.eval()
-model2.eval()
-for _ in range(100):
-    env = EatApple(random_goal=False)
+    for _ in range(100):
+        env = hydra.utils.instantiate(cfg.learning_strategy.env)
+        network = hydra.utils.instantiate(cfg.learning_strategy.network)
 
-    (n1, n2) = env.reset()
-    n1 = torch.from_numpy(n1[np.newaxis, ...]).float()
-    n2 = torch.from_numpy(n2[np.newaxis, ...]).float()
-    hidden1 = model1.init_hidden()
-    hidden2 = model2.init_hidden()
-    d = False
-    ep_r = 0
-    while not d:
-        env.render()
-        action1, hidden1 = model1(n1, hidden1)
-        action2, hidden2 = model2(n2, hidden2)
-        action1 = torch.argmax(action1).detach().numpy()
-        action2 = torch.argmax(action2).detach().numpy()
-        # action1 = int(input())
-        (n1, n2), r, d = env.step([action1, action2])
-        n1 = torch.from_numpy(n1[np.newaxis, ...]).float()
-        n2 = torch.from_numpy(n2[np.newaxis, ...]).float()
-        ep_r += r
-    print("reward: ", ep_r)
+        save_dir = "outputs/2021-01-24/12-03-22/saved_models/ep_366"
+        save_dir = to_absolute_path(save_dir)
+        model_list = os.listdir(save_dir)
+        models = {}
+        for k in model_list:
+            network.load_state_dict(torch.load(os.path.join(save_dir, k)))
+            models[k] = deepcopy(network)
+            models[k].eval()
+        obs = env.reset()
+        hidden_states = {}
+        for k, model in models.items():
+            hidden_states[k] = model.init_hidden()
+
+        done = False
+        episode_reward = 0
+        while not done:
+            actions = {}
+            with torch.no_grad():
+                # ray.util.pdb.set_trace()
+                for k, model in models.items():
+                    s = torch.from_numpy(obs[k]["state"][np.newaxis, ...]).float()
+                    a, hidden_states[k] = model(s, hidden_states[k])
+                    actions[k] = torch.argmax(a).detach().numpy()
+            obs, r, done, _ = env.step(actions)
+            env.render()
+            episode_reward += r
+        print("reward: ", episode_reward)
+        env.close()
+
+
+if __name__ == "__main__":
+    main()

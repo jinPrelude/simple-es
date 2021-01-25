@@ -1,0 +1,17 @@
+learning_strategy:
+  _target_: learning_strategies.evolution.loop.ESLoop
+  offspring_strategy:
+    _target_: learning_strategies.evolution.offspring_strategies.simple_gaussian_offspring
+    init_sigma: 2
+    sigma_decay: 0.999
+    elite_ratio: 0.1
+    group_num: 330
+  env: 
+    _target_: envs.gym_wrapper.GymWrapper
+    env_name: LunarLander-v2
+    max_step: 330
+  network:
+    _target_: networks.neural_network.GymEnvModel
+    num_state: 8
+    num_action: 4
+  cpu_num: 11

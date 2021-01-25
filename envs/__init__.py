@@ -1,3 +1,4 @@
 from .eat_apple import EatApple
+from .gym_wrapper import GymWrapper
 
-all = ["EatApple"]
+all = ["EatApple", "GymWrapper"]

@@ -1,4 +1,0 @@
-# @package network
-_target_: networks.neural_network.EatAppleModel
-in_channels: 1
-num_action: 4

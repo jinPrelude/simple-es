@@ -4,3 +4,4 @@ hydra-core==1.1.0.dev2
 opencv-python
 numpy
 gym
+gym[box2d]

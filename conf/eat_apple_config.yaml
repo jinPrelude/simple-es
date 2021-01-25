@@ -1,0 +1,16 @@
+learning_strategy:
+  _target_: learning_strategies.evolution.loop.ESLoop
+  offspring_strategy:
+    _target_: learning_strategies.evolution.offspring_strategies.simple_gaussian_offspring
+    init_sigma: 2
+    sigma_decay: 0.999
+    elite_ratio: 0.1
+    group_num: 440
+  env: 
+    _target_: envs.eat_apple.EatApple
+    random_goal: False
+  network:
+    _target_: networks.neural_network.EatAppleModel
+    in_channels: 1
+    num_action: 4
+  cpu_num: 8

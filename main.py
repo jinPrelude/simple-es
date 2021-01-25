@@ -1,11 +1,11 @@
+import logging
 import random
 
 import hydra
 import numpy as np
 import torch
+from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
-
-from learning_strategies import Gaussian
 
 
 def set_seed(seed):
@@ -14,11 +14,11 @@ def set_seed(seed):
     random.seed(seed)
 
 
-@hydra.main(config_path="conf", config_name="config")
+@hydra.main(config_path="conf", config_name="lunar_lander_config")
 def main(cfg: DictConfig):
+    logger = logging.getLogger("logger")
     print(OmegaConf.to_yaml(cfg))
-
-    ls = hydra.utils.instantiate(cfg.learning_strategy)
+    ls = instantiate(cfg.learning_strategy, logger=logger)
     ls.run()
 
 
