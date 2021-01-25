@@ -9,7 +9,7 @@ learning_strategy:
   env: 
     _target_: envs.gym_wrapper.GymWrapper
     env_name: LunarLander-v2
-    max_step: 300
+    max_step: 330
   network:
     _target_: networks.neural_network.GymEnvModel
     num_state: 8

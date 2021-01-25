@@ -2,14 +2,14 @@ from copy import deepcopy
 
 import torch
 
+from .abstracts import BaseOffspringStrategy
 
-class simple_gaussian_offspring:
+
+class simple_gaussian_offspring(BaseOffspringStrategy):
     def __init__(self, init_sigma, sigma_decay, elite_ratio, group_num):
+        super(simple_gaussian_offspring, self).__init__(elite_ratio, group_num)
         self.init_sigma = init_sigma
         self.sigma_decay = sigma_decay
-        self.elite_ratio = elite_ratio
-        self.group_num = group_num
-        self.elite_models = []
 
         self.curr_sigma = self.init_sigma
         self.elite_num = max(1, int(group_num * elite_ratio))

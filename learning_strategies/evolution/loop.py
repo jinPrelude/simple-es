@@ -10,12 +10,12 @@ from hydra.utils import instantiate
 from utils import slice_list
 
 from .abstracts import BaseESLoop
-from .rollout_workers import RnnRolloutWorker
+from .rollout_workers import RNNRolloutWorker
 
 
 class ESLoop(BaseESLoop):
     def __init__(self, logger, offspring_strategy, env, network, cpu_num):
-        super().__init__(env, network, cpu_num)
+        super(ESLoop, self).__init__(env, network, cpu_num)
         self.network.init_weights(0, 1e-7)
         self.logger = logger
         self.offspring_strategy = offspring_strategy
@@ -42,8 +42,9 @@ class ESLoop(BaseESLoop):
             env_id = ray.put(self.env)
 
             # create an actor by the number of cores
+            rolloutworker = self.network.rollout_worker
             actors = [
-                RnnRolloutWorker.remote(env_id, offspring_id, worker_id)
+                rolloutworker.remote(env_id, offspring_id, worker_id)
                 for worker_id in range(self.cpu_num)
             ]
 
@@ -99,7 +100,8 @@ class ESLoop(BaseESLoop):
             ep_num += 1
 
             rollout_start_time = time.time()
-            rollout_worker = RnnRolloutWorker(self.env, offsprings, 0)
+            rollout_worker = self.network.rollout_worker
+            rollout_worker = rollout_worker(self.env, offsprings, 0)
             results = rollout_worker.rollout()
             rollout_consumed_time = time.time() - rollout_start_time
 

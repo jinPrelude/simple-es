@@ -4,6 +4,7 @@ import random
 import hydra
 import numpy as np
 import torch
+from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
 
 
@@ -17,8 +18,7 @@ def set_seed(seed):
 def main(cfg: DictConfig):
     logger = logging.getLogger("logger")
     print(OmegaConf.to_yaml(cfg))
-
-    ls = hydra.utils.instantiate(cfg.learning_strategy, logger=logger)
+    ls = instantiate(cfg.learning_strategy, logger=logger)
     ls.run()
 
 
