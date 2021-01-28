@@ -79,7 +79,7 @@ class ESLoop(BaseESLoop):
             prev_reward = best_reward
             save_dir = "saved_models/" + f"ep_{ep_num}/"
             os.makedirs(save_dir)
-            elite_group = self.offspring_strategy.get_elite_models()[0]
+            elite_group = self.offspring_strategy.get_elite_model()
             for k, model in elite_group.items():
                 torch.save(model.state_dict(), save_dir + f"{k}")
 

@@ -5,14 +5,14 @@ import torch
 from .abstracts import BaseOffspringStrategy
 
 
-class simple_gaussian_offspring(BaseOffspringStrategy):
-    def __init__(self, init_sigma, sigma_decay, elite_ratio, group_num):
-        super(simple_gaussian_offspring, self).__init__(elite_ratio, group_num)
+class simple_genetic(BaseOffspringStrategy):
+    def __init__(self, init_sigma, sigma_decay, elite_num, group_num):
+        super(simple_genetic, self).__init__(elite_num, group_num)
         self.init_sigma = init_sigma
         self.sigma_decay = sigma_decay
 
         self.curr_sigma = self.init_sigma
-        self.elite_num = max(1, int(group_num * elite_ratio))
+        self.elite_num = elite_num
 
     @staticmethod
     def _gen_mutation(group: dict, sigma: object, group_num: int):
@@ -41,8 +41,8 @@ class simple_gaussian_offspring(BaseOffspringStrategy):
             )
         return offspring_array
 
-    def get_elite_models(self):
-        return self.elite_models
+    def get_elite_model(self):
+        return self.elite_models[0]
 
     def init_offspring(self, network, agent_ids):
         network.init_weights(0, 1e-7)

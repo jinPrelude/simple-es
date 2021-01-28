@@ -16,8 +16,8 @@ class BaseESLoop(metaclass=ABCMeta):
 
 class BaseOffspringStrategy(metaclass=ABCMeta):
     @abstractmethod
-    def __init__(self, elite_ratio, group_num):
-        self.elite_ratio = elite_ratio
+    def __init__(self, elite_num, group_num):
+        self.elite_num = elite_num
         self.group_num = group_num
         self.elite_models = []
 
@@ -30,7 +30,7 @@ class BaseOffspringStrategy(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def get_elite_models(self):
+    def get_elite_model(self):
         pass
 
     @abstractmethod
