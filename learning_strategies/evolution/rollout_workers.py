@@ -28,8 +28,7 @@ class RNNRolloutWorker(BaseRolloutWorker):
                             s = torch.from_numpy(
                                 states[k]["state"][np.newaxis, ...]
                             ).float()
-                            a, hidden_states[k] = model(s, hidden_states[k])
-                            actions[k] = torch.argmax(a).detach().numpy()
+                            actions[k], hidden_states[k] = model(s, hidden_states[k])
                     states, r, done, info = self.env.step(actions)
                     # self.env.render()
                     total_reward += r
