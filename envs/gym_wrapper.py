@@ -1,5 +1,7 @@
 import gym
 
+gym.logger.set_level(40)
+
 
 class GymWrapper:
     def __init__(self, env_name, max_step=None):
