@@ -1,11 +1,11 @@
 learning_strategy:
   _target_: learning_strategies.evolution.loop.ESLoop
   offspring_strategy:
-    _target_: learning_strategies.evolution.offspring_strategies.simple_gaussian_offspring
+    _target_: learning_strategies.evolution.offspring_strategies.simple_genetic
     init_sigma: 2
     sigma_decay: 0.999
     elite_num: 10
-    group_num: 330
+    offspring_num: 11
   env: 
     _target_: envs.gym_wrapper.GymWrapper
     env_name: LunarLander-v2

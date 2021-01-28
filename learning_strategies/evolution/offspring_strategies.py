@@ -6,8 +6,8 @@ from .abstracts import BaseOffspringStrategy
 
 
 class simple_genetic(BaseOffspringStrategy):
-    def __init__(self, init_sigma, sigma_decay, elite_num, group_num):
-        super(simple_genetic, self).__init__(elite_num, group_num)
+    def __init__(self, init_sigma, sigma_decay, elite_num, offspring_num):
+        super(simple_genetic, self).__init__(elite_num, offspring_num)
         self.init_sigma = init_sigma
         self.sigma_decay = sigma_decay
 
@@ -15,9 +15,9 @@ class simple_genetic(BaseOffspringStrategy):
         self.elite_num = elite_num
 
     @staticmethod
-    def _gen_mutation(group: dict, sigma: object, group_num: int):
+    def _gen_mutation(group: dict, sigma: object, offspring_num: int):
         offsprings_group = []
-        for _ in range(group_num):
+        for _ in range(offspring_num):
             agent_group = {}
             for agent_id, agent in group.items():
                 tmp_agent = deepcopy(agent)
@@ -37,7 +37,7 @@ class simple_genetic(BaseOffspringStrategy):
             offspring_array[0:0] = self._gen_mutation(
                 p,
                 sigma=self.curr_sigma,
-                group_num=(self.group_num // self.elite_num) - 1,
+                offspring_num=(self.offspring_num // self.elite_num) - 1,
             )
         return offspring_array
 
