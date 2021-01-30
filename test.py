@@ -8,7 +8,7 @@ from hydra.utils import instantiate, to_absolute_path
 from omegaconf import DictConfig, OmegaConf
 
 
-@hydra.main(config_path="conf", config_name="eat_apple_config")
+@hydra.main(config_path="conf", config_name="bipedalwalker_config")
 def main(cfg: DictConfig):
     print(OmegaConf.to_yaml(cfg))
 
@@ -16,7 +16,7 @@ def main(cfg: DictConfig):
         env = hydra.utils.instantiate(cfg.learning_strategy.env)
         network = hydra.utils.instantiate(cfg.learning_strategy.network)
 
-        save_dir = "outputs/2021-01-24/12-03-22/saved_models/ep_366"
+        save_dir = "outputs/2021-01-29/21-07-14/saved_models/ep_150"
         save_dir = to_absolute_path(save_dir)
         model_list = os.listdir(save_dir)
         models = {}
@@ -31,18 +31,19 @@ def main(cfg: DictConfig):
 
         done = False
         episode_reward = 0
+        ep_step = 0
         while not done:
             actions = {}
             with torch.no_grad():
                 # ray.util.pdb.set_trace()
                 for k, model in models.items():
                     s = torch.from_numpy(obs[k]["state"][np.newaxis, ...]).float()
-                    a, hidden_states[k] = model(s, hidden_states[k])
-                    actions[k] = torch.argmax(a).detach().numpy()
+                    actions[k], hidden_states[k] = model(s, hidden_states[k])
             obs, r, done, _ = env.step(actions)
             env.render()
             episode_reward += r
-        print("reward: ", episode_reward)
+            ep_step += 1
+        print("reward: ", episode_reward, "ep_step: ", ep_step)
         env.close()
 
 
