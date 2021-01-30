@@ -9,20 +9,19 @@ from hydra.utils import instantiate
 
 from utils import slice_list
 
-from .abstracts import BaseESLoop
-from .rollout_workers import RNNRolloutWorker
+from .abstracts import BaseESLoop, BaseRolloutWorker
 
 
+@ray.remote(num_cpus=1)
 class ESLoop(BaseESLoop):
     def __init__(
-        self, logger, offspring_strategy, env, network, generation_num, cpu_num
+        self, offspring_strategy, env, network, generation_num, cpu_num, eval_ep_num
     ):
-        super(ESLoop, self).__init__(env, network, cpu_num)
+        super().__init__(env, network, cpu_num)
         self.network.init_weights(0, 1e-7)
-        self.logger = logger
         self.offspring_strategy = offspring_strategy
         self.generation_num = generation_num
-        ray.init()
+        self.eval_ep_num = eval_ep_num
 
     def run(self):
         if self.cpu_num <= 1:
@@ -45,9 +44,8 @@ class ESLoop(BaseESLoop):
             env_id = ray.put(self.env)
 
             # create an actor by the number of cores
-            rolloutworker = self.network.rollout_worker
             actors = [
-                rolloutworker.remote(env_id, offspring_id, worker_id)
+                RolloutWorker.remote(env_id, offspring_id, worker_id, self.eval_ep_num)
                 for worker_id in range(self.cpu_num)
             ]
 
@@ -75,7 +73,7 @@ class ESLoop(BaseESLoop):
 
             # print log
             consumed_time = time.time() - start_time
-            self.logger.info(
+            print(
                 f"episode: {ep_num}, Best reward: {best_reward:.2f}, sigma: {curr_sigma:.3f}, time: {consumed_time:.2f}, rollout_t: {rollout_consumed_time:.2f}, eval_t: {eval_consumed_time:.2f}"
             )
 
@@ -87,7 +85,7 @@ class ESLoop(BaseESLoop):
                 torch.save(model.state_dict(), save_dir + f"{k}")
 
     def debug_mode(self):
-        self.logger.info(
+        print(
             "You have entered debug mode. Don't forget to detatch ray.remote() of the rollout worker."
         )
         # init offsprings
@@ -118,6 +116,37 @@ class ESLoop(BaseESLoop):
 
             # print log
             consumed_time = time.time() - start_time
-            self.logger.info(
+            print(
                 f"episode: {ep_num}, Best reward: {best_reward:.2f}, sigma: {curr_sigma:.3f}, time: {consumed_time:.2f}, rollout_t: {rollout_consumed_time:.2f}, eval_t: {eval_consumed_time:.2f}"
             )
+
+
+@ray.remote(num_cpus=1)
+class RolloutWorker(BaseRolloutWorker):
+    def __init__(self, env, offspring_id, worker_id, eval_ep_num=10):
+        super().__init__(env, offspring_id, worker_id, eval_ep_num)
+
+    def rollout(self):
+        rewards = []
+        for i, models in enumerate(self.groups):
+            total_reward = 0
+            for _ in range(self.eval_ep_num):
+                states = self.env.reset()
+                hidden_states = {}
+                done = False
+                for k, model in models.items():
+                    model.reset()
+                while not done:
+                    actions = {}
+                    with torch.no_grad():
+                        # ray.util.pdb.set_trace()
+                        for k, model in models.items():
+                            s = torch.from_numpy(
+                                states[k]["state"][np.newaxis, ...]
+                            ).float()
+                            actions[k] = model(s)
+                    states, r, done, info = self.env.step(actions)
+                    # self.env.render()
+                    total_reward += r
+            rewards.append([(self.worker_id, i), total_reward / self.eval_ep_num])
+        return rewards
