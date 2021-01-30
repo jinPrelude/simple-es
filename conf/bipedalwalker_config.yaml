@@ -15,4 +15,5 @@ learning_strategy:
     num_state: 24
     num_action: 4
     discrete_action: False
+  generation_num: 500
   cpu_num: 11

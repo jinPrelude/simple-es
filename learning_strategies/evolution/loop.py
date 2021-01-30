@@ -14,11 +14,14 @@ from .rollout_workers import RNNRolloutWorker
 
 
 class ESLoop(BaseESLoop):
-    def __init__(self, logger, offspring_strategy, env, network, cpu_num):
+    def __init__(
+        self, logger, offspring_strategy, env, network, generation_num, cpu_num
+    ):
         super(ESLoop, self).__init__(env, network, cpu_num)
         self.network.init_weights(0, 1e-7)
         self.logger = logger
         self.offspring_strategy = offspring_strategy
+        self.generation_num = generation_num
         ray.init()
 
     def run(self):
@@ -33,7 +36,7 @@ class ESLoop(BaseESLoop):
 
         prev_reward = float("-inf")
         ep_num = 0
-        while True:
+        for _ in range(self.generation_num):
             start_time = time.time()
             ep_num += 1
 
