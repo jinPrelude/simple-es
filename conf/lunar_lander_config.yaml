@@ -1,18 +1,20 @@
 offspring_strategy:
-  _target_: learning_strategies.evolution.offspring_strategies.simple_genetic
+  _target_: learning_strategies.evolution.offspring_strategies.simple_evolution
   init_sigma: ${init_sigma}
   sigma_decay: ${sigma_decay}
   elite_num: ${elite_num}
   offspring_num: ${offspring_num}
+  sigma_decay_method: ${sigma_decay_method}
 env: 
   _target_: envs.gym_wrapper.GymWrapper
-  env_name: LunarLander-v2
+  env_name: LunarLanderContinuous-v2
   max_step: 300
 network:
   _target_: networks.neural_network.GymEnvModel
-  num_state: 24
+  num_state: 8
   num_action: 4
   discrete_action: False
+  gru: ${gru}
 
 cpu_num: 11
 generation_num: 500
@@ -23,3 +25,5 @@ init_sigma: 2
 sigma_decay: 0.999
 elite_num: 10
 offspring_num: 286
+sigma_decay_method: simple_decay
+gru: False

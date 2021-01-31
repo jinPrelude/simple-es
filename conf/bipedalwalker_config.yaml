@@ -13,6 +13,7 @@ network:
   num_state: 24
   num_action: 4
   discrete_action: False
+  gru: ${gru}
 
 cpu_num: 11
 generation_num: 500
@@ -23,3 +24,4 @@ init_sigma: 2
 sigma_decay: 0.999
 elite_num: 10
 offspring_num: 286
+gru: False

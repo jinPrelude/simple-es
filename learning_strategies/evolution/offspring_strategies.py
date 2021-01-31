@@ -76,11 +76,17 @@ class simple_genetic(BaseOffspringStrategy):
 
 class simple_evolution(BaseOffspringStrategy):
     def __init__(
-        self, init_sigma, elite_num, offspring_num, sigma_decay_method="simple_decay"
+        self,
+        init_sigma,
+        elite_num,
+        offspring_num,
+        sigma_decay=0.995,
+        sigma_decay_method="simple_decay",
     ):
         super(simple_evolution, self).__init__(elite_num, offspring_num)
         self.init_sigma = init_sigma
         self.elite_num = elite_num
+        self.sigma_decay = sigma_decay
         self.sigma_decay_method = sigma_decay_method
 
         self.model_mu = None
@@ -176,7 +182,7 @@ class simple_evolution(BaseOffspringStrategy):
             for agent_id, agent in self.model_sigma.items():
                 for var_param in agent.parameters():
                     with torch.no_grad():
-                        var_param.data = var_param.data * 0.995
+                        var_param.data = var_param.data * self.sigma_decay
                         sigma_mean.append(
                             torch.sum(var_param.data)
                             / (var_param.data.view(-1, 1).shape[0])
