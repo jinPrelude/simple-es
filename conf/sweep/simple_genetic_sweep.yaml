@@ -10,9 +10,6 @@ parameters:
   init_sigma:
     max: 4.0
     min: 1.0
-  sigma_decay:
-    max: 0.9995
-    min: 0.99
 command:
   - ${env}
   - ${interpreter}

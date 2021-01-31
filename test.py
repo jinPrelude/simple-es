@@ -24,10 +24,8 @@ def main(cfg: DictConfig):
             network.load_state_dict(torch.load(os.path.join(save_dir, k)))
             models[k] = deepcopy(network)
             models[k].eval()
+            models[k].reset()
         obs = env.reset()
-        hidden_states = {}
-        for k, model in models.items():
-            hidden_states[k] = model.init_hidden()
 
         done = False
         episode_reward = 0
@@ -38,7 +36,7 @@ def main(cfg: DictConfig):
                 # ray.util.pdb.set_trace()
                 for k, model in models.items():
                     s = torch.from_numpy(obs[k]["state"][np.newaxis, ...]).float()
-                    actions[k], hidden_states[k] = model(s, hidden_states[k])
+                    actions[k] = model(s)
             obs, r, done, _ = env.step(actions)
             env.render()
             episode_reward += r

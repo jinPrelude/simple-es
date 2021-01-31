@@ -94,9 +94,9 @@ class ESLoop(BaseESLoop):
             prev_reward = best_reward
             if self.log:
                 self.ep5_rewards.append(best_reward)
-                ep5_mean_rewards = sum(self.ep5_rewards) / 5
+                ep5_mean_reward = sum(self.ep5_rewards) / len(self.ep5_rewards)
                 wandb.log(
-                    {"ep5_mean_rewards": ep5_mean_rewards, "curr_sigma": curr_sigma}
+                    {"ep5_mean_reward": ep5_mean_reward, "curr_sigma": curr_sigma}
                 )
             save_dir = "saved_models/" + f"ep_{ep_num}/"
             os.makedirs(save_dir)
