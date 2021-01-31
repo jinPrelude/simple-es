@@ -13,8 +13,8 @@ def main(cfg: DictConfig):
     print(OmegaConf.to_yaml(cfg))
 
     for _ in range(100):
-        env = hydra.utils.instantiate(cfg.learning_strategy.env)
-        network = hydra.utils.instantiate(cfg.learning_strategy.network)
+        env = hydra.utils.instantiate(cfg.env)
+        network = hydra.utils.instantiate(cfg.network)
 
         save_dir = "outputs/2021-01-29/21-07-14/saved_models/ep_150"
         save_dir = to_absolute_path(save_dir)

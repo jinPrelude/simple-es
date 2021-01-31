@@ -8,6 +8,7 @@ class GymWrapper:
         self.env = gym.make(env_name)
         self.max_step = max_step
         self.curr_step = 0
+        self.name = env_name
 
     def reset(self):
         self.curr_step = 0
