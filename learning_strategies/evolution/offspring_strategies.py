@@ -63,3 +63,12 @@ class simple_genetic(BaseOffspringStrategy):
         offsprings = self._gen_offsprings()
         self.curr_sigma *= self.sigma_decay
         return offsprings, best_reward, self.curr_sigma
+
+    def get_wandb_cfg(self):
+        wandb_cfg = dict(
+            init_sigma=self.init_sigma,
+            sigma_decay=self.sigma_decay,
+            elite_num=self.elite_num,
+            offspring_num=self.offspring_num,
+        )
+        return wandb_cfg

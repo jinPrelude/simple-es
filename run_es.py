@@ -31,6 +31,7 @@ def main(cfg: DictConfig):
         cfg.generation_num,
         cfg.cpu_num,
         cfg.eval_ep_num,
+        cfg.log,
     )
     ray.get(ls.run.remote())
 

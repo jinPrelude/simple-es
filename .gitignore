@@ -1,6 +1,9 @@
 # hydra output
 outputs
 
+# wandb
+wandb
+
 # .vscode
 .vscode
 

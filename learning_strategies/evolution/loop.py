@@ -1,10 +1,12 @@
 import os
 import time
+from collections import deque
 from copy import deepcopy
 
 import numpy as np
 import ray
 import torch
+import wandb
 from hydra.utils import instantiate
 
 from utils import slice_list
@@ -15,13 +17,25 @@ from .abstracts import BaseESLoop, BaseRolloutWorker
 @ray.remote(num_cpus=1)
 class ESLoop(BaseESLoop):
     def __init__(
-        self, offspring_strategy, env, network, generation_num, cpu_num, eval_ep_num
+        self,
+        offspring_strategy,
+        env,
+        network,
+        generation_num,
+        cpu_num,
+        eval_ep_num,
+        log=False,
     ):
         super().__init__(env, network, cpu_num)
         self.network.init_weights(0, 1e-7)
         self.offspring_strategy = offspring_strategy
         self.generation_num = generation_num
         self.eval_ep_num = eval_ep_num
+        self.ep5_rewards = deque(maxlen=5)
+        self.log = log
+        if log:
+            wandb_cfg = self.offspring_strategy.get_wandb_cfg()
+            wandb.init(project=self.env.name, config=wandb_cfg)
 
     def run(self):
         if self.cpu_num <= 1:
@@ -78,6 +92,12 @@ class ESLoop(BaseESLoop):
             )
 
             prev_reward = best_reward
+            if self.log:
+                self.ep5_rewards.append(best_reward)
+                ep5_mean_rewards = sum(self.ep5_rewards) / 5
+                wandb.log(
+                    {"ep5_mean_rewards": ep5_mean_rewards, "curr_sigma": curr_sigma}
+                )
             save_dir = "saved_models/" + f"ep_{ep_num}/"
             os.makedirs(save_dir)
             elite_group = self.offspring_strategy.get_elite_model()

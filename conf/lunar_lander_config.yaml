@@ -17,6 +17,7 @@ network:
 cpu_num: 11
 generation_num: 500
 eval_ep_num: 3
+log: True
 
 init_sigma: 2
 sigma_decay: 0.999
