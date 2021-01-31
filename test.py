@@ -16,12 +16,12 @@ def main(cfg: DictConfig):
         env = hydra.utils.instantiate(cfg.env)
         network = hydra.utils.instantiate(cfg.network)
 
-        save_dir = "outputs/2021-01-29/21-07-14/saved_models/ep_150"
-        save_dir = to_absolute_path(save_dir)
-        model_list = os.listdir(save_dir)
+        ckpt_dir = "outputs/2021-01-29/21-07-14/saved_models/ep_150"
+        ckpt_dir = to_absolute_path(ckpt_dir)
+        model_list = os.listdir(ckpt_dir)
         models = {}
         for k in model_list:
-            network.load_state_dict(torch.load(os.path.join(save_dir, k)))
+            network.load_state_dict(torch.load(os.path.join(ckpt_dir, k)))
             models[k] = deepcopy(network)
             models[k].eval()
             models[k].reset()
