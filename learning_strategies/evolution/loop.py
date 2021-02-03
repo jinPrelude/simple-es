@@ -6,9 +6,9 @@ from copy import deepcopy
 import numpy as np
 import ray
 import torch
-import wandb
 from hydra.utils import instantiate
 
+import wandb
 from utils import slice_list
 
 from .abstracts import BaseESLoop, BaseRolloutWorker
@@ -121,8 +121,7 @@ class ESLoop(BaseESLoop):
             ep_num += 1
 
             rollout_start_time = time.time()
-            rollout_worker = self.network.rollout_worker
-            rollout_worker = rollout_worker(self.env, offsprings, 0)
+            rollout_worker = RolloutWorker(self.env, offsprings, 0)
             results = rollout_worker.rollout()
             rollout_consumed_time = time.time() - rollout_start_time
 

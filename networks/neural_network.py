@@ -19,10 +19,10 @@ class GymEnvModel(BaseNetwork):
 
     def forward(self, x):
         x = x.unsqueeze(0)
-        x = F.relu(self.fc1(x))
+        x = self.fc1(x)
         if self.use_gru:
             x, self.h = self.gru(x, self.h)
-            x = F.relu(x)
+            x = torch.tanh(x)
         x = self.fc2(x)
         if self.discrete_action:
             x = F.softmax(x.squeeze(), dim=0)

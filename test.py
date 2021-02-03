@@ -8,15 +8,15 @@ from hydra.utils import instantiate, to_absolute_path
 from omegaconf import DictConfig, OmegaConf
 
 
-@hydra.main(config_path="conf", config_name="bipedalwalker_config")
+@hydra.main(config_path="conf", config_name="simple_spread_config")
 def main(cfg: DictConfig):
     print(OmegaConf.to_yaml(cfg))
 
+    env = hydra.utils.instantiate(cfg.env)
+    network = hydra.utils.instantiate(cfg.network)
     for _ in range(100):
-        env = hydra.utils.instantiate(cfg.env)
-        network = hydra.utils.instantiate(cfg.network)
 
-        ckpt_dir = "outputs/2021-01-29/21-07-14/saved_models/ep_150"
+        ckpt_dir = "outputs/2021-02-02/23-32-46/saved_models/ep_2739"
         ckpt_dir = to_absolute_path(ckpt_dir)
         model_list = os.listdir(ckpt_dir)
         models = {}
@@ -42,7 +42,6 @@ def main(cfg: DictConfig):
             episode_reward += r
             ep_step += 1
         print("reward: ", episode_reward, "ep_step: ", ep_step)
-        env.close()
 
 
 if __name__ == "__main__":

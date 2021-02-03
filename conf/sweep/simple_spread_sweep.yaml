@@ -1,0 +1,20 @@
+program: /home/euijin/Documents/give-life-to-agents/run_es.py
+method: bayes
+metric: 
+  name: ep5_mean_reward
+  goal: maximize
+parameters:
+  elite_num:
+    max: 20
+    min: 1
+  init_sigma:
+    max: 4.001
+    min: 1.001
+  sigma_decay:
+    max: 0.9999
+    min: 0.92
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - ${args_no_hyphens} 

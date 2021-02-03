@@ -17,7 +17,7 @@ def set_seed(seed):
     random.seed(seed)
 
 
-@hydra.main(config_path="conf", config_name="bipedalwalker_config")
+@hydra.main(config_path="conf", config_name="simple_spread_config")
 def main(cfg: DictConfig):
     print(OmegaConf.to_yaml(cfg))
     network = instantiate(cfg.network)
@@ -34,6 +34,16 @@ def main(cfg: DictConfig):
         cfg.log,
     )
     ray.get(ls.run.remote())
+    # ls = ESLoop(
+    #     offspring_strategy,
+    #     env,
+    #     network,
+    #     cfg.generation_num,
+    #     cfg.cpu_num,
+    #     cfg.eval_ep_num,
+    #     cfg.log,
+    # )
+    # ls.run()
 
 
 if __name__ == "__main__":
