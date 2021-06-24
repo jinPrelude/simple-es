@@ -17,7 +17,7 @@ def set_seed(seed):
     random.seed(seed)
 
 
-@hydra.main(config_path="conf", config_name="simple_spread_config")
+@hydra.main(config_path="conf", config_name="bipedalwalker_config")
 def main(cfg: DictConfig):
     print(OmegaConf.to_yaml(cfg))
     network = instantiate(cfg.network)
