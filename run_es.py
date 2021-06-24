@@ -16,7 +16,7 @@ def set_seed(seed):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config', type=str, default="conf/simplespread.yaml")
+    parser.add_argument('--config', type=str, default="conf/lunarlander.yaml")
     parser.add_argument('--process-num', type=int, default=12)
     parser.add_argument('--generation-num', type=int, default=300)
     parser.add_argument('--eval-ep-num', type=int, default=3)
