@@ -1,6 +1,6 @@
 # python = 3.7
 torch==1.7.1
-opencv-python==4.5.1.48
+pyyaml
 numpy==1.19.2
 gym
 gym[box2d]

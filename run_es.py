@@ -16,29 +16,22 @@ def set_seed(seed):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--env-config', type=str, default="conf/simple_spread/env.yaml")
-    parser.add_argument('--network-config', type=str, default="conf/simple_spread/gym_model.yaml")
-    parser.add_argument('--strategy-config', type=str, default="conf/simple_spread/simple_genetic.yaml")
-    parser.add_argument('--process-num', type=int, default=4)
+    parser.add_argument('--config', type=str, default="conf/simplespread.yaml")
+    parser.add_argument('--process-num', type=int, default=12)
     parser.add_argument('--generation-num', type=int, default=300)
     parser.add_argument('--eval-ep-num', type=int, default=3)
     parser.add_argument('--log', action='store_true')
     parser.add_argument('--save-model-period', type=int, default=10)
     args = parser.parse_args()
 
-    with open(args.env_config) as f:
-        env_config = yaml.load(f, Loader=yaml.FullLoader)
-        f.close()
-    with open(args.network_config) as f:
-        network_config = yaml.load(f, Loader=yaml.FullLoader)
-        f.close()
-    with open(args.strategy_config) as f:
-        strategy_config = yaml.load(f, Loader=yaml.FullLoader)
+    with open(args.config) as f:
+        config = yaml.load(f, Loader=yaml.FullLoader)
         f.close()
 
-    env = builder.build_env(env_config)
-    network = builder.build_network(network_config)
-    loop = builder.build_strategy(strategy_config, env, network, args.generation_num, args.process_num, args.eval_ep_num, args.log)
+    env = builder.build_env(config['env'])
+    network = builder.build_network(config['network'])
+    loop = builder.build_strategy(config['strategy'], env, network, args.generation_num, args.process_num,
+                                    args.eval_ep_num, args.log, args.save_model_period)
     loop.run()
 
 

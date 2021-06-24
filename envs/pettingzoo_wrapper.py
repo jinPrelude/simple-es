@@ -3,18 +3,18 @@ from pettingzoo.mpe import simple_spread_v2
 from pettingzoo.sisl import multiwalker_v6, waterworld_v3
 
 class PettingzooWrapper:
-    def __init__(self, env_name, max_step=None):
-        if env_name == "simple_spread":
+    def __init__(self, name, max_step=None):
+        if name == "simple_spread":
             self.env = simple_spread_v2.env()
-        elif env_name == "waterworld":
+        elif name == "waterworld":
             self.env = waterworld_v3.env()
-        elif env_name == "multiwalker":
+        elif name == "multiwalker":
             self.env = multiwalker_v6.env()
         else:
             assert AssertionError, "wrong env name."
         self.max_step = max_step
         self.curr_step = 0
-        self.name = env_name
+        self.name = name
         self.agents = self.env.possible_agents
         self.env.reset()
 

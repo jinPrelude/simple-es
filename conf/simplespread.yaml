@@ -1,0 +1,18 @@
+env:
+  name: simple_spread
+  max_step: None
+
+network:
+  name: gym_model
+  num_state: 18
+  num_action: 5
+  discrete_action: True
+  gru: True
+
+strategy:
+  name : simple_evolution
+  init_sigma: 3
+  sigma_decay: 0.9999
+  elite_num: 10
+  offspring_num: 100
+  sigma_decay_method: simple_decay

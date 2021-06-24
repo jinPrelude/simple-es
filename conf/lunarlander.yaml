@@ -1,0 +1,18 @@
+env:
+  name: LunarLanderContinuous-v2
+  max_step: 300
+
+network:
+  name: gym_model
+  num_state: 8
+  num_action: 4
+  discrete_action: False
+  gru: False
+
+strategy:
+  name : simple_evolution
+  init_sigma: 2
+  sigma_decay: 0.999
+  elite_num: 5
+  offspring_num: 44
+  sigma_decay_method: simple_decay

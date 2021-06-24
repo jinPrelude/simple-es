@@ -24,6 +24,7 @@ class ESLoop(BaseESLoop):
         cpu_num,
         eval_ep_num,
         log=False,
+        save_model_period=10,
     ):
         super().__init__(env, network, cpu_num)
         self.network.init_weights(0, 1e-7)
@@ -32,7 +33,7 @@ class ESLoop(BaseESLoop):
         self.eval_ep_num = eval_ep_num
         self.ep5_rewards = deque(maxlen=5)
         self.log = log
-
+        self.save_model_period = save_model_period
         # create log directory
         now = datetime.now()
         curr_time = now.strftime("%Y%m%d%H%M%S")
@@ -100,10 +101,11 @@ class ESLoop(BaseESLoop):
                 )
             
             elite_group = self.offspring_strategy.get_elite_model()
-            save_pth = self.save_dir + "/saved_models" + f"/ep_{ep_num}/"
-            os.makedirs(save_pth)
-            for k, model in elite_group.items():
-                torch.save(model.state_dict(), save_pth + f"{k}.pt")
+            if ep_num % self.save_model_period == 0:
+                save_pth = self.save_dir + "/saved_models" + f"/ep_{ep_num}/"
+                os.makedirs(save_pth)
+                for k, model in elite_group.items():
+                    torch.save(model.state_dict(), save_pth + f"{k}.pt")
 
     def debug_mode(self):
         print(

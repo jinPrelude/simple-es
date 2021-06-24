@@ -1,0 +1,17 @@
+env:
+  name: BipedalWalker-v3
+  max_step: 300
+
+network:
+  name: gym_model
+  num_state: 24
+  num_action: 4
+  discrete_action: False
+  gru: False
+
+strategy:
+  name : simple_genetic
+  init_sigma: 2
+  sigma_decay: 0.999
+  elite_num: 10
+  offspring_num: 30
