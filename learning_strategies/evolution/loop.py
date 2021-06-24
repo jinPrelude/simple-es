@@ -1,12 +1,12 @@
 import os
 import time
+from datetime import datetime
 from collections import deque
 from copy import deepcopy
 
 import numpy as np
 import multiprocessing as mp
 import torch
-from hydra.utils import instantiate
 
 import wandb
 from utils import slice_list
@@ -32,6 +32,16 @@ class ESLoop(BaseESLoop):
         self.eval_ep_num = eval_ep_num
         self.ep5_rewards = deque(maxlen=5)
         self.log = log
+
+        # create log directory
+        now = datetime.now()
+        curr_time = now.strftime("%Y%m%d%H%M%S")
+        dir_lst = []
+        self.save_dir = f"logs/{self.env.name}/{curr_time}"
+        dir_lst.append(self.save_dir)
+        dir_lst.append(self.save_dir + "/saved_models/")
+        for _dir in dir_lst: os.makedirs(_dir)
+
         if log:
             wandb_cfg = self.offspring_strategy.get_wandb_cfg()
             wandb.init(project=self.env.name, config=wandb_cfg)
@@ -65,6 +75,7 @@ class ESLoop(BaseESLoop):
             results = []
             for li in outputs:
                 results[0:0] = li  # fast way to concatenate lists
+            p.close()
             rollout_consumed_time = time.time() - rollout_start_time
 
             eval_start_time = time.time()
@@ -87,11 +98,12 @@ class ESLoop(BaseESLoop):
                 wandb.log(
                     {"ep5_mean_reward": ep5_mean_reward, "curr_sigma": curr_sigma}
                 )
-            save_dir = "saved_models/" + f"ep_{ep_num}/"
-            os.makedirs(save_dir)
+            
             elite_group = self.offspring_strategy.get_elite_model()
+            save_pth = self.save_dir + "/saved_models" + f"/ep_{ep_num}/"
+            os.makedirs(save_pth)
             for k, model in elite_group.items():
-                torch.save(model.state_dict(), save_dir + f"{k}")
+                torch.save(model.state_dict(), save_pth + f"{k}.pt")
 
     def debug_mode(self):
         print(
@@ -149,7 +161,7 @@ def RolloutWorker(arguments):
                         ).float()
                         actions[k] = model(s)
                 states, r, done, info = env.step(actions)
-                # self.env.render()
+                # env.render()
                 total_reward += r
         rewards.append([(worker_id, i), total_reward / eval_ep_num])
     return rewards

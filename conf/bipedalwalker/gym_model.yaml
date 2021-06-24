@@ -1,0 +1,5 @@
+name: gym_model
+num_state: 24
+num_action: 4
+discrete_action: False
+gru: False
