@@ -1,12 +1,10 @@
 import logging
 import random
-
-import hydra
+import yaml
+import argparse
 import numpy as np
 import torch
-from hydra.utils import instantiate
-from omegaconf import DictConfig, OmegaConf
-
+import builder
 from learning_strategies.evolution.loop import ESLoop
 
 
@@ -16,22 +14,25 @@ def set_seed(seed):
     random.seed(seed)
 
 
-@hydra.main(config_path="conf", config_name="lunar_lander_config")
-def main(cfg: DictConfig):
-    print(OmegaConf.to_yaml(cfg))
-    network = instantiate(cfg.network)
-    offspring_strategy = instantiate(cfg.offspring_strategy)
-    env = instantiate(cfg.env)
-    ls = ESLoop(
-        offspring_strategy,
-        env,
-        network,
-        cfg.generation_num,
-        cfg.cpu_num,
-        cfg.eval_ep_num,
-        cfg.log,
-    )
-    ls.run()
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--config', type=str, default="conf/simplespread.yaml")
+    parser.add_argument('--process-num', type=int, default=12)
+    parser.add_argument('--generation-num', type=int, default=300)
+    parser.add_argument('--eval-ep-num', type=int, default=3)
+    parser.add_argument('--log', action='store_true')
+    parser.add_argument('--save-model-period', type=int, default=10)
+    args = parser.parse_args()
+
+    with open(args.config) as f:
+        config = yaml.load(f, Loader=yaml.FullLoader)
+        f.close()
+
+    env = builder.build_env(config['env'])
+    network = builder.build_network(config['network'])
+    loop = builder.build_strategy(config['strategy'], env, network, args.generation_num, args.process_num,
+                                    args.eval_ep_num, args.log, args.save_model_period)
+    loop.run()
 
 
 if __name__ == "__main__":

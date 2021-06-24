@@ -4,11 +4,11 @@ gym.logger.set_level(40)
 
 
 class GymWrapper:
-    def __init__(self, env_name, max_step=None):
-        self.env = gym.make(env_name)
+    def __init__(self, name, max_step=None):
+        self.env = gym.make(name)
         self.max_step = max_step
         self.curr_step = 0
-        self.name = env_name
+        self.name = name
 
     def reset(self):
         self.curr_step = 0

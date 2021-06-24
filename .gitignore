@@ -1,8 +1,8 @@
-# hydra output
-outputs
-
 # wandb
 wandb
+
+#log
+logs
 
 # .vscode
 .vscode
