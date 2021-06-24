@@ -21,7 +21,7 @@ class ESLoop(BaseESLoop):
         env,
         network,
         generation_num,
-        cpu_num,
+        process_num,
         eval_ep_num,
         log=False,
         save_model_period=10,
@@ -29,7 +29,7 @@ class ESLoop(BaseESLoop):
         super().__init__()
         self.env = env
         self.network = network
-        self.cpu_num = cpu_num
+        self.process_num = process_num
         self.network.init_weights(0, 1e-7)
         self.offspring_strategy = offspring_strategy
         self.generation_num = generation_num
@@ -57,7 +57,7 @@ class ESLoop(BaseESLoop):
         offsprings = self.offspring_strategy.init_offspring(
             self.network, self.env.get_agent_ids()
         )
-        offsprings = slice_list(offsprings, self.cpu_num)
+        offsprings = slice_list(offsprings, self.process_num)
 
         prev_reward = float("-inf")
         ep_num = 0
@@ -66,8 +66,8 @@ class ESLoop(BaseESLoop):
             ep_num += 1
 
             # create an actor by the number of cores
-            p = mp.Pool(self.cpu_num)
-            arguments = [(self.env, offsprings, worker_id, self.eval_ep_num) for worker_id in range(self.cpu_num)]
+            p = mp.Pool(self.process_num)
+            arguments = [(self.env, offsprings, worker_id, self.eval_ep_num) for worker_id in range(self.process_num)]
 
             # start ollout actors
             rollout_start_time = time.time()
@@ -85,7 +85,7 @@ class ESLoop(BaseESLoop):
             offsprings, best_reward, curr_sigma = self.offspring_strategy.evaluate(
                 results, offsprings
             )
-            offsprings = slice_list(offsprings, self.cpu_num)
+            offsprings = slice_list(offsprings, self.process_num)
             eval_consumed_time = time.time() - eval_start_time
 
             # print log

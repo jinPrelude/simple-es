@@ -16,12 +16,12 @@ def set_seed(seed):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config', type=str, default="conf/lunarlander.yaml")
-    parser.add_argument('--process-num', type=int, default=12)
-    parser.add_argument('--generation-num', type=int, default=300)
-    parser.add_argument('--eval-ep-num', type=int, default=3)
-    parser.add_argument('--log', action='store_true')
-    parser.add_argument('--save-model-period', type=int, default=10)
+    parser.add_argument('--config', type=str, default="conf/lunarlander.yaml", help="config file to run.")
+    parser.add_argument('--process-num', type=int, default=12, help="number of mp process.")
+    parser.add_argument('--generation-num', type=int, default=300, help="max number of generation iteration.")
+    parser.add_argument('--eval-ep-num', type=int, default=3, help="number of model evaluaion per iteration.")
+    parser.add_argument('--log', action='store_true', help="wandb log")
+    parser.add_argument('--save-model-period', type=int, default=10, help="save model for every n iteration.")
     args = parser.parse_args()
 
     with open(args.config) as f:
