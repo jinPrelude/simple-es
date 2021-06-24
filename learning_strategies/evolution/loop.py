@@ -26,7 +26,10 @@ class ESLoop(BaseESLoop):
         log=False,
         save_model_period=10,
     ):
-        super().__init__(env, network, cpu_num)
+        super().__init__()
+        self.env = env
+        self.network = network
+        self.cpu_num = cpu_num
         self.network.init_weights(0, 1e-7)
         self.offspring_strategy = offspring_strategy
         self.generation_num = generation_num
@@ -34,6 +37,9 @@ class ESLoop(BaseESLoop):
         self.ep5_rewards = deque(maxlen=5)
         self.log = log
         self.save_model_period = save_model_period
+
+    def run(self):
+
         # create log directory
         now = datetime.now()
         curr_time = now.strftime("%Y%m%d%H%M%S")
@@ -43,13 +49,9 @@ class ESLoop(BaseESLoop):
         dir_lst.append(self.save_dir + "/saved_models/")
         for _dir in dir_lst: os.makedirs(_dir)
 
-        if log:
+        if self.log:
             wandb_cfg = self.offspring_strategy.get_wandb_cfg()
             wandb.init(project=self.env.name, config=wandb_cfg)
-
-    def run(self):
-        if self.cpu_num <= 1:
-            self.debug_mode()
 
         # init offsprings
         offsprings = self.offspring_strategy.init_offspring(
@@ -106,41 +108,6 @@ class ESLoop(BaseESLoop):
                 os.makedirs(save_pth)
                 for k, model in elite_group.items():
                     torch.save(model.state_dict(), save_pth + f"{k}.pt")
-
-    def debug_mode(self):
-        print(
-            "You have entered debug mode. Don't forget to detatch ray.remote() of the rollout worker."
-        )
-        # init offsprings
-        offsprings = self.offspring_strategy.init_offspring(
-            self.network, self.env.get_agent_ids()
-        )
-        offsprings = slice_list(offsprings, self.cpu_num)
-
-        ep_num = 0
-        # start rollout
-        while True:
-            start_time = time.time()
-            ep_num += 1
-
-            rollout_start_time = time.time()
-            rollout_worker = RolloutWorker(self.env, offsprings, 0)
-            results = rollout_worker.rollout()
-            rollout_consumed_time = time.time() - rollout_start_time
-
-            # Offspring evaluation
-            eval_start_time = time.time()
-            offsprings, best_reward, curr_sigma = self.offspring_strategy.evaluate(
-                results, offsprings
-            )
-            offsprings = slice_list(offsprings, self.cpu_num)
-            eval_consumed_time = time.time() - eval_start_time
-
-            # print log
-            consumed_time = time.time() - start_time
-            print(
-                f"episode: {ep_num}, Best reward: {best_reward:.2f}, sigma: {curr_sigma:.3f}, time: {consumed_time:.2f}, rollout_t: {rollout_consumed_time:.2f}, eval_t: {eval_consumed_time:.2f}"
-            )
 
 # offspring_id, worker_id, eval_ep_num=10
 def RolloutWorker(arguments):

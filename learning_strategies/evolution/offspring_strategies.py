@@ -7,7 +7,10 @@ from .abstracts import BaseOffspringStrategy
 
 class simple_genetic(BaseOffspringStrategy):
     def __init__(self, init_sigma, sigma_decay, elite_num, offspring_num):
-        super(simple_genetic, self).__init__(elite_num, offspring_num)
+        super(simple_genetic, self).__init__()
+        self.elite_num = elite_num
+        self.offspring_num = offspring_num
+        self.elite_models = []
         self.init_sigma = init_sigma
         self.sigma_decay = sigma_decay
 
@@ -83,8 +86,11 @@ class simple_evolution(BaseOffspringStrategy):
         sigma_decay=0.995,
         sigma_decay_method="simple_decay",
     ):
-        super(simple_evolution, self).__init__(elite_num, offspring_num)
+        super(simple_evolution, self).__init__()
+        self.elite_num = elite_num
+        self.offspring_num = offspring_num
         self.init_sigma = init_sigma
+        self.elite_models = []
         self.elite_num = elite_num
         self.sigma_decay = sigma_decay
         self.sigma_decay_method = sigma_decay_method

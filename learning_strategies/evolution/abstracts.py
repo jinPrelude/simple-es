@@ -4,11 +4,8 @@ from abc import *
 
 class BaseESLoop(metaclass=ABCMeta):
     @abstractmethod
-    def __init__(self, env, network, cpu_num):
-        self.env = env
-        self.network = network
-        self.cpu_num = cpu_num
-
+    def __init__(self):
+        pass
     @abstractmethod
     def run(self):
         pass
@@ -16,10 +13,8 @@ class BaseESLoop(metaclass=ABCMeta):
 
 class BaseOffspringStrategy(metaclass=ABCMeta):
     @abstractmethod
-    def __init__(self, elite_num, offspring_num):
-        self.elite_num = elite_num
-        self.offspring_num = offspring_num
-        self.elite_models = []
+    def __init__(selfm):
+        pass
 
     @abstractmethod
     def _gen_mutation(self):
