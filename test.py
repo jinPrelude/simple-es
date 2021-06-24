@@ -33,7 +33,6 @@ def main(cfg: DictConfig):
         while not done:
             actions = {}
             with torch.no_grad():
-                # ray.util.pdb.set_trace()
                 for k, model in models.items():
                     s = torch.from_numpy(obs[k]["state"][np.newaxis, ...]).float()
                     actions[k] = model(s)

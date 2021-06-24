@@ -4,17 +4,16 @@ from collections import deque
 from copy import deepcopy
 
 import numpy as np
-import ray
+import multiprocessing as mp
 import torch
 from hydra.utils import instantiate
 
 import wandb
 from utils import slice_list
 
-from .abstracts import BaseESLoop, BaseRolloutWorker
+from .abstracts import BaseESLoop
 
 
-@ray.remote(num_cpus=1)
 class ESLoop(BaseESLoop):
     def __init__(
         self,
@@ -53,31 +52,21 @@ class ESLoop(BaseESLoop):
             start_time = time.time()
             ep_num += 1
 
-            # ray.put() offsprings & env
-            offspring_id = ray.put(offsprings)
-            env_id = ray.put(self.env)
-
             # create an actor by the number of cores
-            actors = [
-                RolloutWorker.remote(env_id, offspring_id, worker_id, self.eval_ep_num)
-                for worker_id in range(self.cpu_num)
-            ]
+            p = mp.Pool(self.cpu_num)
+            arguments = [(self.env, offsprings, worker_id, self.eval_ep_num) for worker_id in range(self.cpu_num)]
 
             # start ollout actors
             rollout_start_time = time.time()
-            rollout_ids = [actor.rollout.remote() for actor in actors]
 
-            # wait until all the actors are finished
+            # rollout
+            outputs = p.map(RolloutWorker, arguments)
+            # concat output lists to single list
             results = []
-            while len(rollout_ids):
-                done_id, rollout_ids = ray.wait(rollout_ids)
-                output = ray.get(done_id)
-                for li in output:
-                    results[0:0] = li  # fast way to concatenate lists
+            for li in outputs:
+                results[0:0] = li  # fast way to concatenate lists
             rollout_consumed_time = time.time() - rollout_start_time
 
-            # Offspring evaluation
-            del offspring_id
             eval_start_time = time.time()
             offsprings, best_reward, curr_sigma = self.offspring_strategy.evaluate(
                 results, offsprings
@@ -139,33 +128,28 @@ class ESLoop(BaseESLoop):
                 f"episode: {ep_num}, Best reward: {best_reward:.2f}, sigma: {curr_sigma:.3f}, time: {consumed_time:.2f}, rollout_t: {rollout_consumed_time:.2f}, eval_t: {eval_consumed_time:.2f}"
             )
 
-
-@ray.remote(num_cpus=1)
-class RolloutWorker(BaseRolloutWorker):
-    def __init__(self, env, offspring_id, worker_id, eval_ep_num=10):
-        super().__init__(env, offspring_id, worker_id, eval_ep_num)
-
-    def rollout(self):
-        rewards = []
-        for i, models in enumerate(self.groups):
-            total_reward = 0
-            for _ in range(self.eval_ep_num):
-                states = self.env.reset()
-                hidden_states = {}
-                done = False
-                for k, model in models.items():
-                    model.reset()
-                while not done:
-                    actions = {}
-                    with torch.no_grad():
-                        # ray.util.pdb.set_trace()
-                        for k, model in models.items():
-                            s = torch.from_numpy(
-                                states[k]["state"][np.newaxis, ...]
-                            ).float()
-                            actions[k] = model(s)
-                    states, r, done, info = self.env.step(actions)
-                    # self.env.render()
-                    total_reward += r
-            rewards.append([(self.worker_id, i), total_reward / self.eval_ep_num])
-        return rewards
+# offspring_id, worker_id, eval_ep_num=10
+def RolloutWorker(arguments):
+    env, offspring_id, worker_id, eval_ep_num = arguments
+    rewards = []
+    for i, models in enumerate(offspring_id[worker_id]):
+        total_reward = 0
+        for _ in range(eval_ep_num):
+            states = env.reset()
+            hidden_states = {}
+            done = False
+            for k, model in models.items():
+                model.reset()
+            while not done:
+                actions = {}
+                with torch.no_grad():
+                    for k, model in models.items():
+                        s = torch.from_numpy(
+                            states[k]["state"][np.newaxis, ...]
+                        ).float()
+                        actions[k] = model(s)
+                states, r, done, info = env.step(actions)
+                # self.env.render()
+                total_reward += r
+        rewards.append([(worker_id, i), total_reward / eval_ep_num])
+    return rewards

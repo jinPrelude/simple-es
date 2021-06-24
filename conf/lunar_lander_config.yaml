@@ -16,14 +16,14 @@ network:
   discrete_action: False
   gru: ${gru}
 
-cpu_num: 11
+cpu_num: 4
 generation_num: 500
 eval_ep_num: 3
 log: True
 
 init_sigma: 2
 sigma_decay: 0.999
-elite_num: 10
-offspring_num: 286
+elite_num: 5
+offspring_num: 44
 sigma_decay_method: simple_decay
 gru: False

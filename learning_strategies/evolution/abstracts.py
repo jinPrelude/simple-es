@@ -41,16 +41,3 @@ class BaseOffspringStrategy(metaclass=ABCMeta):
     def evaluate(self):
         pass
 
-
-class BaseRolloutWorker(metaclass=ABCMeta):
-    @abstractmethod
-    def __init__(self, env, offspring_id, worker_id, eval_ep_num):
-        os.environ["MKL_NUM_THREADS"] = "1"
-        self.env = env
-        self.groups = offspring_id[worker_id]
-        self.worker_id = worker_id
-        self.eval_ep_num = eval_ep_num
-
-    @abstractmethod
-    def rollout(self):
-        pass
