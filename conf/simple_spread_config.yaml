@@ -1,0 +1,29 @@
+offspring_strategy:
+  _target_: learning_strategies.evolution.offspring_strategies.simple_evolution
+  init_sigma: ${init_sigma}
+  sigma_decay: ${sigma_decay}
+  elite_num: ${elite_num}
+  offspring_num: ${offspring_num}
+  sigma_decay_method: ${sigma_decay_method}
+env: 
+  _target_: envs.pettingzoo_wrapper.PettingzooWrapper
+  env_name: simple_spread
+  max_step: None
+network:
+  _target_: networks.neural_network.GymEnvModel
+  num_state: 18
+  num_action: 5
+  discrete_action: True
+  gru: ${gru}
+
+cpu_num: 11
+generation_num: 700
+eval_ep_num: 7
+log: True
+
+init_sigma: 3
+sigma_decay: 0.9999
+elite_num: 10
+offspring_num: 660
+sigma_decay_method: simple_decay
+gru: False

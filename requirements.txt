@@ -1,0 +1,10 @@
+# python = 3.7
+ray==1.1.0
+torch==1.7.1
+hydra-core==1.1.0.dev2
+opencv-python==4.5.1.48
+numpy==1.19.2
+gym
+gym[box2d]
+wandb
+pettingzoo[all]

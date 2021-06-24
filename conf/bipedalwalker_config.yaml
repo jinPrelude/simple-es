@@ -1,0 +1,27 @@
+offspring_strategy:
+  _target_: learning_strategies.evolution.offspring_strategies.simple_genetic
+  init_sigma: ${init_sigma}
+  sigma_decay: ${sigma_decay}
+  elite_num: ${elite_num}
+  offspring_num: ${offspring_num}
+env: 
+  _target_: envs.gym_wrapper.GymWrapper
+  env_name: BipedalWalker-v3
+  max_step: 400
+network:
+  _target_: networks.neural_network.GymEnvModel
+  num_state: 24
+  num_action: 4
+  discrete_action: False
+  gru: ${gru}
+
+cpu_num: 11
+generation_num: 500
+eval_ep_num: 3
+log: True
+
+init_sigma: 2
+sigma_decay: 0.999
+elite_num: 10
+offspring_num: 286
+gru: False

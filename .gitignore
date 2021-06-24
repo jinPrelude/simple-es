@@ -1,3 +1,15 @@
+# hydra output
+outputs
+
+# wandb
+wandb
+
+# .vscode
+.vscode
+
+# others
+.idea
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -104,7 +116,7 @@ celerybeat.pid
 # Environments
 .env
 .venv
-env/
+# env/  # For conf/env
 venv/
 ENV/
 env.bak/
