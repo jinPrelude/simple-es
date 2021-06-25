@@ -1,8 +1,8 @@
 # give-life-to-agents
 Give-life-to-agents is a project for bio-inspired neural network training.
 <p float="center">
-  <img src="https://user-images.githubusercontent.com/16518993/123286330-ca1a1280-d548-11eb-8789-1b27edaee9a8.gif" width="400" />
-  <img src="https://user-images.githubusercontent.com/16518993/123286575-fcc40b00-d548-11eb-9e73-1ec3b465d5ce.gif" width="400" /> 
+  <img src="https://user-images.githubusercontent.com/16518993/123286330-ca1a1280-d548-11eb-8789-1b27edaee9a8.gif" width="300" />
+  <img src="https://user-images.githubusercontent.com/16518993/123286575-fcc40b00-d548-11eb-9e73-1ec3b465d5ce.gif" width="300" /> 
 </p>
 
 ## Algorithms
@@ -32,17 +32,19 @@ pip install -r requirements.txt
 
 ```bash
 # training LunarLander-v2
-python run_es.py --config conf/lunarlander.yaml 
+python run_es.py --cfg-path conf/lunarlander.yaml 
 
 # training BiPedalWalker-v3
-python run_es.py --config conf/bipedal.yaml 
+python run_es.py --cfg-path conf/bipedal.yaml --log
 ```
+
+You need [wandb](https://wandb.ai/) account for logging. Wandb provides various useful logging features for free.
 
 ## Test saved model
 
 ```bash
 # training LunarLander-v2
-python test.py --config conf/lunarlander.yaml --ckpt-path <saved-model-dir>
+python test.py --cfg-path conf/lunarlander.yaml --ckpt-path <saved-model-dir> --save-gif
 ```
 
 NOTE : \<saved-model-dir>  is the path to the directory containing the .pt file, not .pt file.
