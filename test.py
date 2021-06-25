@@ -57,8 +57,8 @@ def main():
                     s = torch.from_numpy(obs[k]["state"][np.newaxis, ...]).float()
                     actions[k] = model(s)
             obs, r, done, _ = env.step(actions)
-            test = env.render()
-            if args.save_gif: ep_render_lst.append(test)
+            rgb_array = env.render()
+            if args.save_gif: ep_render_lst.append(rgb_array)
             episode_reward += r
             ep_step += 1
         print("reward: ", episode_reward, "ep_step: ", ep_step)
