@@ -1,4 +1,5 @@
 import gym
+import pybullet_envs
 
 gym.logger.set_level(40)
 
@@ -24,7 +25,7 @@ class GymWrapper:
         return_list = {}
         transition = {}
         s, r, d, info = self.env.step(action["0"])
-        if self.max_step:
+        if self.max_step != 'None':
             if self.curr_step >= self.max_step or d:
                 d = True
         transition["state"] = s
@@ -38,7 +39,7 @@ class GymWrapper:
         return ["0"]
 
     def render(self):
-        self.env.render()
+        return self.env.render(mode='rgb_array')
 
     def close(self):
         self.env.close()

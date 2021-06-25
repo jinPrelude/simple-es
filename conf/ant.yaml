@@ -1,0 +1,17 @@
+env:
+  name: AntBulletEnv-v0
+  max_step: 500
+
+network:
+  name: gym_model
+  num_state: 28
+  num_action: 8
+  discrete_action: False
+  gru: False
+
+strategy:
+  name : simple_genetic
+  init_sigma: 2.3
+  sigma_decay: 0.999
+  elite_num: 10
+  offspring_num: 240

@@ -6,3 +6,5 @@ gym
 gym[box2d]
 wandb
 pettingzoo[all]
+pybullet==3.0.0 # latest version(>=3.1.7 print unexpected string "argv[0]=")
+moviepy==1.0.3

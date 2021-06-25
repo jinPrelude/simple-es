@@ -19,7 +19,7 @@ class GymEnvModel(BaseNetwork):
 
     def forward(self, x):
         x = x.unsqueeze(0)
-        x = self.fc1(x)
+        x = torch.tanh(self.fc1(x))
         if self.use_gru:
             x, self.h = self.gru(x, self.h)
             x = torch.tanh(x)
