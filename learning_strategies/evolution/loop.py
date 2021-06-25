@@ -17,6 +17,7 @@ from .abstracts import BaseESLoop
 class ESLoop(BaseESLoop):
     def __init__(
         self,
+        cfg_path,
         offspring_strategy,
         env,
         network,
@@ -38,8 +39,6 @@ class ESLoop(BaseESLoop):
         self.log = log
         self.save_model_period = save_model_period
 
-    def run(self):
-
         # create log directory
         now = datetime.now()
         curr_time = now.strftime("%Y%m%d%H%M%S")
@@ -52,6 +51,9 @@ class ESLoop(BaseESLoop):
         if self.log:
             wandb_cfg = self.offspring_strategy.get_wandb_cfg()
             wandb.init(project=self.env.name, config=wandb_cfg)
+            wandb.save(cfg_path)
+
+    def run(self):
 
         # init offsprings
         offsprings = self.offspring_strategy.init_offspring(

@@ -1,3 +1,5 @@
+import yaml
+
 from envs.gym_wrapper import *
 from envs.pettingzoo_wrapper import *
 from networks.neural_network import *
@@ -15,14 +17,23 @@ def build_network(config):
         return GymEnvModel(config['num_state'], config['num_action'],
                             config['discrete_action'], config['gru'])
 
-def build_strategy(config, env, network, gen_num, process_num, eval_ep_num, log, save_model_period):
-    if config['name'] == 'simple_evolution':
-        strategy = simple_evolution(config['init_sigma'], config['elite_num'],
-                                    config['offspring_num'], config['sigma_decay'],
-                                    config['sigma_decay_method'])
-        return ESLoop(strategy, env, network, gen_num, process_num, eval_ep_num, log, save_model_period)
+def build_loop(cfg_path, gen_num, process_num, eval_ep_num, log, save_model_period):
 
-    elif config['name'] == 'simple_genetic':
-        strategy = simple_genetic(config['init_sigma'], config['sigma_decay'],
-                                    config['elite_num'], config['offspring_num'])
-        return ESLoop(strategy, env, network, gen_num, process_num, eval_ep_num, log, save_model_period)
+    with open(cfg_path) as f:
+        config = yaml.load(f, Loader=yaml.FullLoader)
+        f.close()
+
+    env = build_env(config['env'])
+    network = build_network(config['network'])
+    strategy_cfg = config['strategy']
+
+    if strategy_cfg['name'] == 'simple_evolution':
+        strategy = simple_evolution(strategy_cfg['init_sigma'], strategy_cfg['elite_num'],
+                                    strategy_cfg['offspring_num'], strategy_cfg['sigma_decay'],
+                                    strategy_cfg['sigma_decay_method'])
+        return ESLoop(cfg_path, strategy, env, network, gen_num, process_num, eval_ep_num, log, save_model_period)
+
+    elif strategy_cfg['name'] == 'simple_genetic':
+        strategy = simple_genetic(strategy_cfg['init_sigma'], strategy_cfg['sigma_decay'],
+                                    strategy_cfg['elite_num'], strategy_cfg['offspring_num'])
+        return ESLoop(cfg_path, strategy, env, network, gen_num, process_num, eval_ep_num, log, save_model_period)
