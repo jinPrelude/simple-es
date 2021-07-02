@@ -1,0 +1,16 @@
+env:
+  name: Pendulum-v0
+  max_step: 1000
+
+network:
+  name: indirect_encoding
+  num_state: 3
+  num_action: 2
+  discrete_action: False
+
+strategy:
+  name : simple_genetic
+  init_sigma: 2.3
+  sigma_decay: 0.999
+  elite_num: 10
+  offspring_num: 240

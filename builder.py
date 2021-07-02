@@ -15,14 +15,12 @@ def build_env(config):
 
 
 def build_network(config):
-    if config["name"] == "gym_model":
-        return GymEnvModel(
-            config["num_state"],
-            config["num_action"],
-            config["discrete_action"],
-            config["gru"],
-        )
-
+    if config['name'] == "gym_model":
+        return GymEnvModel(config['num_state'], config['num_action'],
+                            config['discrete_action'], config['gru'])
+    elif config['name'] == "indirect_encoding":
+        return IndirectEncoding(config['num_state'], config['num_action'],
+                            config['discrete_action'])
 
 def build_loop(cfg_path, gen_num, process_num, eval_ep_num, log, save_model_period):
 
