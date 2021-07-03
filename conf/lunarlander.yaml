@@ -1,13 +1,14 @@
 env:
   name: LunarLanderContinuous-v2
   max_step: 300
+  pomdp: True
 
 network:
   name: gym_model
   num_state: 8
   num_action: 4
   discrete_action: False
-  gru: False
+  gru: True
 
 strategy:
   name : simple_genetic
