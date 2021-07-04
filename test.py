@@ -10,6 +10,7 @@ from copy import deepcopy
 from learning_strategies.evolution.loop import ESLoop
 from moviepy.editor import ImageSequenceClip
 
+
 def set_seed(seed):
     torch.manual_seed(seed)
     np.random.seed(seed)
@@ -18,18 +19,18 @@ def set_seed(seed):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--cfg-path', type=str, default="conf/ant.yaml")
-    parser.add_argument('--ckpt-path', type=str)
-    parser.add_argument('--save-gif', action='store_true')
+    parser.add_argument("--cfg-path", type=str, default="conf/ant.yaml")
+    parser.add_argument("--ckpt-path", type=str)
+    parser.add_argument("--save-gif", action="store_true")
     args = parser.parse_args()
 
     with open(args.cfg_path) as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
         f.close()
 
-    env = builder.build_env(config['env'])
-    network = builder.build_network(config['network'])
-    
+    env = builder.build_env(config["env"])
+    network = builder.build_network(config["network"])
+
     if args.save_gif:
         run_num = args.ckpt_path.split("/")[-3]
         save_dir = f"test_gif/{run_num}/"
@@ -58,13 +59,16 @@ def main():
                     actions[k] = model(s)
             obs, r, done, _ = env.step(actions)
             rgb_array = env.render()
-            if args.save_gif: ep_render_lst.append(rgb_array)
+            if args.save_gif:
+                ep_render_lst.append(rgb_array)
             episode_reward += r
             ep_step += 1
         print("reward: ", episode_reward, "ep_step: ", ep_step)
         if args.save_gif:
             clip = ImageSequenceClip(ep_render_lst, fps=30)
-            clip.write_gif(save_dir + f'ep_{i}.gif', fps=30)
+            clip.write_gif(save_dir + f"ep_{i}.gif", fps=30)
         del ep_render_lst
+
+
 if __name__ == "__main__":
     main()

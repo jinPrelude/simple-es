@@ -46,7 +46,8 @@ class ESLoop(BaseESLoop):
         self.save_dir = f"logs/{self.env.name}/{curr_time}"
         dir_lst.append(self.save_dir)
         dir_lst.append(self.save_dir + "/saved_models/")
-        for _dir in dir_lst: os.makedirs(_dir)
+        for _dir in dir_lst:
+            os.makedirs(_dir)
 
         if self.log:
             wandb_cfg = self.offspring_strategy.get_wandb_cfg()
@@ -74,7 +75,10 @@ class ESLoop(BaseESLoop):
             rollout_start_time = time.time()
 
             # rollout(https://stackoverflow.com/questions/41273960/python-3-does-pool-keep-the-original-order-of-data-passed-to-map)
-            results = p.map(RolloutWorker, arguments)
+            if self.process_num > 1:
+                results = p.map(RolloutWorker, arguments)
+            else:
+                results = [RolloutWorker(arg) for arg in arguments]
             # concat output lists to single list
             p.close()
             rollout_consumed_time = time.time() - rollout_start_time
@@ -98,13 +102,12 @@ class ESLoop(BaseESLoop):
                 wandb.log(
                     {"ep5_mean_reward": ep5_mean_reward, "curr_sigma": curr_sigma}
                 )
-            
-            elite_group = self.offspring_strategy.get_elite_model()
+
+            elite = self.offspring_strategy.get_elite_model()
             if ep_num % self.save_model_period == 0:
-                save_pth = self.save_dir + "/saved_models" + f"/ep_{ep_num}/"
-                os.makedirs(save_pth)
-                for k, model in elite_group.items():
-                    torch.save(model.state_dict(), save_pth + f"{k}.pt")
+                save_pth = self.save_dir + "/saved_models" + f"/ep_{ep_num}.pt"
+                torch.save(elite.state_dict(), save_pth)
+
 
 # offspring_id, worker_id, eval_ep_num=10
 def RolloutWorker(arguments):
@@ -120,9 +123,7 @@ def RolloutWorker(arguments):
             actions = {}
             with torch.no_grad():
                 for k, model in offspring.items():
-                    s = torch.from_numpy(
-                        states[k]["state"][np.newaxis, ...]
-                    ).float()
+                    s = torch.from_numpy(states[k]["state"][np.newaxis, ...]).float()
                     actions[k] = model(s)
             states, r, done, info = env.step(actions)
             # env.render()

@@ -6,6 +6,7 @@ class BaseESLoop(metaclass=ABCMeta):
     @abstractmethod
     def __init__(self):
         pass
+
     @abstractmethod
     def run(self):
         pass
@@ -35,4 +36,3 @@ class BaseOffspringStrategy(metaclass=ABCMeta):
     @abstractmethod
     def evaluate(self):
         pass
-
