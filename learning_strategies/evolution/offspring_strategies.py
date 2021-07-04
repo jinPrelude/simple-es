@@ -20,49 +20,108 @@ class simple_genetic(BaseOffspringStrategy):
         self.elite_num = elite_num
 
     @staticmethod
-    def _gen_mutation(agent_ids, elite_model: dict, sigma: object, offspring_num: int):
-        offsprings_group = []
-        for _ in range(offspring_num):
-            perturbed_network = deepcopy(elite_model)
-            for param in perturbed_network.parameters():
-                with torch.no_grad():
-                    noise = torch.normal(0, sigma, size=param.size())
-                    param.add_(noise)
-            offsprings_group.append(wrap_agentid(agent_ids, perturbed_network))
-        return offsprings_group
+    def _gen_offsprings(
+        agent_ids: list,
+        elite_models: list,
+        elite_num: int,
+        offspring_num: int,
+        sigma: float,
+    ):
+        """Return offsprings based on current elite models.
 
-    def _gen_offsprings(self):
-        offspring_array = []
-        for p in self.elite_models:
+        Parameters
+        ----------
+        agent_ids: list[str, ...]
+        elite_models: list[torch.nn.Module, ...]
+        elite_num: int
+            number of the elite models.
+        offspring_num: int
+            number of offsprings should be made
+        sigma: float
+            sigma for model perturbation.
+
+        Returns
+        -------
+        offsprings_group: list[dict, ...]
+        """
+        offspring_group = []
+        for p in elite_models:
             # add elite
-            offspring_array.append(wrap_agentid(self.agent_ids, p))
+            offspring_group.append(wrap_agentid(agent_ids, p))
             # add elite offsprings
-            offspring_array[0:0] = self._gen_mutation(
-                self.agent_ids,
-                p,
-                sigma=self.curr_sigma,
-                offspring_num=(self.offspring_num // self.elite_num) - 1,
-            )
-        return offspring_array
+            for _ in range((offspring_num // elite_num) - 1):
+                perturbed_network = deepcopy(p)
+                for param in perturbed_network.parameters():
+                    with torch.no_grad():
+                        noise = torch.normal(0, sigma, size=param.size())
+                        param.add_(noise)
+                offspring_group.append(wrap_agentid(agent_ids, perturbed_network))
+        return offspring_group
 
     def get_elite_model(self):
         return self.elite_models[0]
 
-    def init_offspring(self, network, agent_ids):
+    def init_offspring(self, network: torch.nn.Module, agent_ids: list):
+        """Get network and agent ids, and return initialized offsprings.
+
+        Parameters
+        ----------
+        network : torch.nn.Module
+            network of the agent.
+        agent_ids : list[str, ...]
+
+        Returns
+        -------
+        offsprings: list
+            Initialized offsprings.
+        """
+
         self.agent_ids = agent_ids
         network.init_weights(0, 1e-7)
-        self.elite_models = [network for i in range(self.elite_num)]
-        return self._gen_offsprings()
+        self.elite_models = [network for _ in range(self.elite_num)]
+        offspring_group = self._gen_offsprings(
+            self.agent_ids,
+            self.elite_models,
+            self.elite_num,
+            self.offspring_num,
+            self.curr_sigma,
+        )
+        return offspring_group
 
-    def evaluate(self, result, offsprings):
-        elite_ids = np.flip(np.argsort(np.array(result)))[: self.elite_num]
-        best_reward = max(result)
+    def evaluate(self, rewards: list, offsprings: list):
+        """Get rewards and offspring models, evaluate and update, and return new offsprings.
+
+        Parameters
+        ----------
+        rewards : list[float, ...]
+            Rewards received by offsprings
+        offsprings : list[dict, ...]
+            Model of the offsprings.
+
+        Returns
+        -------
+        offspring_group: list
+            New offsprings from updated models.
+        best_reward: float
+            Best rewards one of the offspring got.
+        curr_sigma: float
+            Current decayed sigma.
+        """
+
+        elite_ids = np.flip(np.argsort(np.array(rewards)))[: self.elite_num]
+        best_reward = max(rewards)
         self.elite_models = []
         for elite_id in elite_ids:
             self.elite_models.append(offsprings[elite_id][self.agent_ids[0]])
-        offsprings = self._gen_offsprings()
+        offspring_group = self._gen_offsprings(
+            self.agent_ids,
+            self.elite_models,
+            self.elite_num,
+            self.offspring_num,
+            self.curr_sigma,
+        )
         self.curr_sigma *= self.sigma_decay
-        return offsprings, best_reward, self.curr_sigma
+        return offspring_group, best_reward, self.curr_sigma
 
     def get_wandb_cfg(self):
         wandb_cfg = dict(
@@ -84,58 +143,107 @@ class simple_evolution(BaseOffspringStrategy):
         self.elite_num = elite_num
         self.sigma_decay = sigma_decay
 
-        self.model_mu = None
-        self.model_sigma = None
+        self.mu_model = None
+        self.sigma_model = None
 
     @staticmethod
-    def _gen_mutation(agent_ids, mu, sigma, offspring_num):
-        offsprings_group = []
-        for _ in range(offspring_num):
-            preturbed_agent = deepcopy(mu)
+    def _gen_offsprings(agent_ids, elite_models, mu_model, sigma_model, offspring_num):
+        """Return offsprings based on current elite models.
+
+        Parameters
+        ----------
+        agent_ids: list[str, ...]
+        elite_models: list[torch.nn.Module, ...]
+        offspring_num: int
+            number of offsprings should be made
+        mu_model: torch.nn.Module
+        sigma_model: torch.nn.Module
+
+        Returns
+        -------
+        offsprings_group: list[dict, ...]
+        """
+
+        offspring_group = []
+        offspring_group.append(wrap_agentid(agent_ids, mu_model))
+        offspring_group.append(wrap_agentid(agent_ids, elite_models[0]))
+
+        for _ in range(offspring_num - 1):
+            preturbed_agent = deepcopy(mu_model)
             for param, sigma_param in zip(
-                preturbed_agent.parameters(), sigma.parameters()
+                preturbed_agent.parameters(), sigma_model.parameters()
             ):
                 with torch.no_grad():
                     param.data = torch.normal(mean=param.data, std=sigma_param.data)
-            offsprings_group.append(wrap_agentid(agent_ids, preturbed_agent))
-        return offsprings_group
+            offspring_group.append(wrap_agentid(agent_ids, preturbed_agent))
 
-    def _gen_offsprings(self):
-        offspring_array = []
-        offspring_array.append(wrap_agentid(self.agent_ids, self.model_mu))
-        offspring_array.append(wrap_agentid(self.agent_ids, self.elite_models[0]))
-        offspring_array[0:0] = self._gen_mutation(
-            self.agent_ids,
-            self.model_mu,
-            sigma=self.model_sigma,
-            offspring_num=self.offspring_num - 1,
-        )
-        return offspring_array
+        return offspring_group
 
     def get_elite_model(self):
         return self.elite_models[0]
 
-    def init_offspring(self, network, agent_ids):
+    def init_offspring(self, network: torch.nn.Module, agent_ids: list):
+        """Get network and agent ids, and return initialized offsprings.
+
+        Parameters
+        ----------
+        network : torch.nn.Module
+            network of the agent.
+        agent_ids : list[str, ...]
+
+        Returns
+        -------
+        offsprings: list
+            Initialized offsprings.
+        """
         self.agent_ids = agent_ids
         network.init_weights(0, 1e-7)
         self.elite_models = [network for i in range(self.elite_num)]
-        self.model_mu = self.elite_models[0]
-        self.model_sigma = self.model_mu
-        for param in self.model_sigma.parameters():
+        self.mu_model = self.elite_models[0]
+        self.sigma_model = self.mu_model
+        for param in self.sigma_model.parameters():
             with torch.no_grad():
                 param.data = torch.ones(param.data.size()) * self.init_sigma
-        return self._gen_offsprings()
+        # agent_ids, elite_models, mu_model, sigma_model, offspring_num
+        offspring_group = self._gen_offsprings(
+            self.agent_ids,
+            self.elite_models,
+            self.mu_model,
+            self.sigma_model,
+            self.offspring_num,
+        )
+        return offspring_group
 
-    def evaluate(self, result, offsprings):
-        elite_ids = np.flip(np.argsort(np.array(result)))[: self.elite_num]
-        best_reward = max(result)
+    def evaluate(self, rewards: list, offsprings: list):
+        """Get rewards and offspring models, evaluate and update the elite
+        model and return new offsprings.
+
+        Parameters
+        ----------
+        rewards : list[float, ...]
+            Rewards received by offsprings
+        offsprings : list[dict, ...]
+            Model of the offsprings.
+
+        Returns
+        -------
+        offspring_group: list
+            New offsprings from updated models.
+        best_reward: float
+            Best rewards one of the offspring got.
+        curr_sigma: float
+            Current decayed sigma.
+        """
+
+        elite_ids = np.flip(np.argsort(np.array(rewards)))[: self.elite_num]
+        best_reward = max(rewards)
         self.elite_models = []
         for elite_id in elite_ids:
             self.elite_models.append(offsprings[elite_id][self.agent_ids[0]])
 
         sigma_mean = []
         # simply decay sigma
-        for var_param in self.model_sigma.parameters():
+        for var_param in self.sigma_model.parameters():
             with torch.no_grad():
                 var_param.data = var_param.data * self.sigma_decay
                 sigma_mean.append(
@@ -144,19 +252,25 @@ class simple_evolution(BaseOffspringStrategy):
         curr_sigma = sum(sigma_mean) / len(sigma_mean)
 
         # get new mu
-        new_model_mu = self.elite_models[0]
+        new_mu_model = self.elite_models[0]
         for elite in self.elite_models[1:]:
-            for param, param2 in zip(new_model_mu.parameters(), elite.parameters()):
+            for param, param2 in zip(new_mu_model.parameters(), elite.parameters()):
                 with torch.no_grad():
                     param.data = param.data + param2.data
         # get mean weight
-        for param in new_model_mu.parameters():
+        for param in new_mu_model.parameters():
             with torch.no_grad():
                 param.data = param.data / self.elite_num
-        self.model_mu = new_model_mu
+        self.mu_model = new_mu_model
 
-        offsprings = self._gen_offsprings()
-        return offsprings, best_reward, curr_sigma
+        offspring_group = self._gen_offsprings(
+            self.agent_ids,
+            self.elite_models,
+            self.mu_model,
+            self.sigma_model,
+            self.offspring_num,
+        )
+        return offspring_group, best_reward, curr_sigma
 
     def get_wandb_cfg(self):
         wandb_cfg = dict(

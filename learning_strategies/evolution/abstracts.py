@@ -18,10 +18,6 @@ class BaseOffspringStrategy(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def _gen_mutation(self):
-        pass
-
-    @abstractmethod
     def _gen_offsprings(self):
         pass
 
