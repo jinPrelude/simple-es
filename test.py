@@ -36,7 +36,6 @@ def main():
         save_dir = f"test_gif/{run_num}/"
         os.makedirs(save_dir)
 
-
     network = builder.build_network(config["network"])
     network.load_state_dict(torch.load(args.ckpt_path))
     for i in range(100):

@@ -16,9 +16,23 @@ Give-life-to-agents is a project for bio-inspired neural network training.
 - [ ] [hebbian plasticity](https://arxiv.org/abs/2007.02686)
 
 ### networks
-- [x] ANN
+- [x] ANN(+ GRU)
 - [ ] Indirect Encoding
 - [ ] SNN
+
+## Recurrent ANN with POMDP CartPole
+Recurrent ANN(GRU) is also implemented by default. The use of the gru module can be set in the config file. For environment, LunarLander and CartPole support POMDP setting.
+```python
+network:
+  gru: True
+env:
+  name: "LunarLanderContinuous-v2"
+  pomdp: True
+```
+### POMDP CartPole benchmarks
+GRU agent with simple-evolution strategy(green) scores over 200 in POMDP CartPole environment, whereas ANN agent(yellow) scores nearly 60, failed to successfully learn POMDP CartPole environment. GRU agent with simple-genetic strategy(purple) also shows poor performance.
+<img src=https://user-images.githubusercontent.com/16518993/124372010-42f43980-dcc2-11eb-848f-eecaa9c7f30c.png width=600>
+
 
 ## Installation
 

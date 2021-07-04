@@ -5,8 +5,17 @@ gym.logger.set_level(40)
 
 
 class GymWrapper:
-    def __init__(self, name, max_step=None):
+    def __init__(self, name, max_step=None, pomdp=False):
         self.env = gym.make(name)
+        if pomdp:
+            if "LunarLander" in name:
+                print("POMDP LunarLander")
+                self.env = LunarLanderPOMDP(self.env)
+            elif "CartPole" in name:
+                print("POMDP CartPole")
+                self.env = CartPolePOMDP(self.env)
+            else:
+                raise AssertionError(f"{name} doesn't support POMDP.")
         self.max_step = max_step
         self.curr_step = 0
         self.name = name
@@ -43,3 +52,26 @@ class GymWrapper:
 
     def close(self):
         self.env.close()
+
+
+class LunarLanderPOMDP(gym.ObservationWrapper):
+    def __init__(self, env):
+        super().__init__(env)
+
+    def observation(self, obs):
+        # modify obs
+        obs[2] = 0
+        obs[3] = 0
+        obs[5] = 0
+        return obs
+
+
+class CartPolePOMDP(gym.ObservationWrapper):
+    def __init__(self, env):
+        super().__init__(env)
+
+    def observation(self, obs):
+        # modify obs
+        obs[1] = 0
+        obs[3] = 0
+        return obs
