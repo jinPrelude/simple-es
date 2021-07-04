@@ -11,7 +11,8 @@ def build_env(config):
     if config["name"] in ["simple_spread", "waterworld", "multiwalker"]:
         return PettingzooWrapper(config["name"], config["max_step"])
     else:
-        return GymWrapper(config['name'], config['max_step'], config['pomdp'])
+        return GymWrapper(config["name"], config["max_step"], config["pomdp"])
+
 
 def build_network(config):
     if config["name"] == "gym_model":

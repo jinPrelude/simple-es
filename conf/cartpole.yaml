@@ -1,0 +1,18 @@
+env:
+  name: CartPole-v1
+  max_step: 500
+  pomdp: True
+
+network:
+  name: gym_model
+  num_state: 4
+  num_action: 2
+  discrete_action: True
+  gru: True
+
+strategy:
+  name : simple_genetic
+  init_sigma: 2
+  sigma_decay: 0.9999
+  elite_num: 20
+  offspring_num: 48
