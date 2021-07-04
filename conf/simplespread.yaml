@@ -15,4 +15,3 @@ strategy:
   sigma_decay: 0.9999
   elite_num: 10
   offspring_num: 100
-  sigma_decay_method: simple_decay

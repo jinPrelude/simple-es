@@ -17,6 +17,7 @@ Give-life-to-agents is a project for bio-inspired neural network training.
 
 ### networks
 - [x] ANN
+- [ ] Indirect Encoding
 - [ ] SNN
 
 ## Installation
@@ -46,7 +47,5 @@ You need [wandb](https://wandb.ai/) account for logging. Wandb provides various 
 # training LunarLander-v2
 python test.py --cfg-path conf/lunarlander.yaml --ckpt-path <saved-model-dir> --save-gif
 ```
-
-NOTE : \<saved-model-dir>  is the path to the directory containing the .pt file, not .pt file.
 
 
