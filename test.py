@@ -29,22 +29,22 @@ def main():
         f.close()
 
     env = builder.build_env(config["env"])
-    network = builder.build_network(config["network"])
+    agent_ids = env.get_agent_ids()
 
     if args.save_gif:
         run_num = args.ckpt_path.split("/")[-3]
         save_dir = f"test_gif/{run_num}/"
         os.makedirs(save_dir)
 
+
+    network = builder.build_network(config["network"])
+    network.load_state_dict(torch.load(args.ckpt_path))
     for i in range(100):
-        model_list = os.listdir(args.ckpt_path)
         models = {}
-        for k in model_list:
-            key = k.split(".")[0]
-            network.load_state_dict(torch.load(os.path.join(args.ckpt_path, k)))
-            models[key] = deepcopy(network)
-            models[key].eval()
-            models[key].reset()
+        for agent_id in agent_ids:
+            models[agent_id] = deepcopy(network)
+            models[agent_id].eval()
+            models[agent_id].reset()
         obs = env.reset()
 
         done = False
