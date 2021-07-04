@@ -59,7 +59,6 @@ class ESLoop(BaseESLoop):
         offsprings = self.offspring_strategy.init_offspring(
             self.network, self.env.get_agent_ids()
         )
-        offsprings = slice_list(offsprings, self.process_num)
 
         prev_reward = float("-inf")
         ep_num = 0
@@ -69,17 +68,14 @@ class ESLoop(BaseESLoop):
 
             # create an actor by the number of cores
             p = mp.Pool(self.process_num)
-            arguments = [(self.env, offsprings, worker_id, self.eval_ep_num) for worker_id in range(self.process_num)]
+            arguments = [(self.env, off, self.eval_ep_num) for off in offsprings]
 
             # start ollout actors
             rollout_start_time = time.time()
 
-            # rollout
-            outputs = p.map(RolloutWorker, arguments)
+            # rollout(https://stackoverflow.com/questions/41273960/python-3-does-pool-keep-the-original-order-of-data-passed-to-map)
+            results = p.map(RolloutWorker, arguments)
             # concat output lists to single list
-            results = []
-            for li in outputs:
-                results[0:0] = li  # fast way to concatenate lists
             p.close()
             rollout_consumed_time = time.time() - rollout_start_time
 
@@ -87,7 +83,6 @@ class ESLoop(BaseESLoop):
             offsprings, best_reward, curr_sigma = self.offspring_strategy.evaluate(
                 results, offsprings
             )
-            offsprings = slice_list(offsprings, self.process_num)
             eval_consumed_time = time.time() - eval_start_time
 
             # print log
@@ -113,26 +108,24 @@ class ESLoop(BaseESLoop):
 
 # offspring_id, worker_id, eval_ep_num=10
 def RolloutWorker(arguments):
-    env, offspring_id, worker_id, eval_ep_num = arguments
-    rewards = []
-    for i, models in enumerate(offspring_id[worker_id]):
-        total_reward = 0
-        for _ in range(eval_ep_num):
-            states = env.reset()
-            hidden_states = {}
-            done = False
-            for k, model in models.items():
-                model.reset()
-            while not done:
-                actions = {}
-                with torch.no_grad():
-                    for k, model in models.items():
-                        s = torch.from_numpy(
-                            states[k]["state"][np.newaxis, ...]
-                        ).float()
-                        actions[k] = model(s)
-                states, r, done, info = env.step(actions)
-                # env.render()
-                total_reward += r
-        rewards.append([(worker_id, i), total_reward / eval_ep_num])
+    env, offspring, eval_ep_num = arguments
+    total_reward = 0
+    for _ in range(eval_ep_num):
+        states = env.reset()
+        hidden_states = {}
+        done = False
+        for k, model in offspring.items():
+            model.reset()
+        while not done:
+            actions = {}
+            with torch.no_grad():
+                for k, model in offspring.items():
+                    s = torch.from_numpy(
+                        states[k]["state"][np.newaxis, ...]
+                    ).float()
+                    actions[k] = model(s)
+            states, r, done, info = env.step(actions)
+            # env.render()
+            total_reward += r
+    rewards = total_reward / eval_ep_num
     return rewards

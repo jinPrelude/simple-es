@@ -1,5 +1,6 @@
 from copy import deepcopy
 
+import numpy as np
 import torch
 
 from .abstracts import BaseOffspringStrategy
@@ -57,12 +58,11 @@ class simple_genetic(BaseOffspringStrategy):
         return self._gen_offsprings()
 
     def evaluate(self, result, offsprings):
-        results = sorted(result, key=lambda l: l[1], reverse=True)
-        best_reward = results[0][1]
-        elite_ids = results[: self.elite_num]
+        elite_ids = np.flip(np.argsort(np.array(result)))[:self.elite_num]
+        best_reward = max(result)
         self.elite_models = []
-        for id in elite_ids:
-            self.elite_models.append(offsprings[id[0][0]][id[0][1]])
+        for elite_id in elite_ids:
+            self.elite_models.append(offsprings[elite_id])
         offsprings = self._gen_offsprings()
         self.curr_sigma *= self.sigma_decay
         return offsprings, best_reward, self.curr_sigma
@@ -145,12 +145,11 @@ class simple_evolution(BaseOffspringStrategy):
         return self._gen_offsprings()
 
     def evaluate(self, result, offsprings):
-        results = sorted(result, key=lambda l: l[1], reverse=True)
-        best_reward = results[0][1]
-        elite_ids = results[: self.elite_num]
+        elite_ids = np.flip(np.argsort(np.array(result)))[:self.elite_num]
+        best_reward = max(result)
         self.elite_models = []
         for elite_id in elite_ids:
-            self.elite_models.append(offsprings[elite_id[0][0]][elite_id[0][1]])
+            self.elite_models.append(offsprings[elite_id])
 
         sigma_mean = []
         if self.sigma_decay_method == "original":
