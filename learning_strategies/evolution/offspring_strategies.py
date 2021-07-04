@@ -4,6 +4,7 @@ import numpy as np
 import torch
 
 from .abstracts import BaseOffspringStrategy
+from .utils import wrap_agentid
 
 
 class simple_genetic(BaseOffspringStrategy):
@@ -22,27 +23,19 @@ class simple_genetic(BaseOffspringStrategy):
     def _gen_mutation(agent_ids, elite_model: dict, sigma: object, offspring_num: int):
         offsprings_group = []
         for _ in range(offspring_num):
-            agent_group = {}
-            for agent_id in agent_ids:
-                tmp_agent = deepcopy(elite_model)
-                for param in tmp_agent.parameters():
-                    with torch.no_grad():
-                        noise = torch.normal(0, sigma, size=param.size())
-                        param.add_(noise)
-
-                agent_group[agent_id] = tmp_agent
-            offsprings_group.append(agent_group)
+            perturbed_network = deepcopy(elite_model)
+            for param in perturbed_network.parameters():
+                with torch.no_grad():
+                    noise = torch.normal(0, sigma, size=param.size())
+                    param.add_(noise)
+            offsprings_group.append(wrap_agentid(agent_ids, perturbed_network))
         return offsprings_group
 
     def _gen_offsprings(self):
         offspring_array = []
         for p in self.elite_models:
             # add elite
-            agent_group = {}
-            for agent_id in self.agent_ids:
-                agent_group[agent_id] = p
-            offspring_array.append(agent_group)
-
+            offspring_array.append(wrap_agentid(self.agent_ids, p))
             # add elite offsprings
             offspring_array[0:0] = self._gen_mutation(
                 self.agent_ids,
@@ -98,26 +91,19 @@ class simple_evolution(BaseOffspringStrategy):
     def _gen_mutation(agent_ids, mu, sigma, offspring_num):
         offsprings_group = []
         for _ in range(offspring_num):
-            tmp_agent = deepcopy(mu)
-            for param, sigma_param in zip(tmp_agent.parameters(), sigma.parameters()):
+            preturbed_agent = deepcopy(mu)
+            for param, sigma_param in zip(
+                preturbed_agent.parameters(), sigma.parameters()
+            ):
                 with torch.no_grad():
                     param.data = torch.normal(mean=param.data, std=sigma_param.data)
-            agent_group = {}
-            for agent_id in agent_ids:
-                agent_group[agent_id] = tmp_agent
-            offsprings_group.append(agent_group)
+            offsprings_group.append(wrap_agentid(agent_ids, preturbed_agent))
         return offsprings_group
 
     def _gen_offsprings(self):
         offspring_array = []
-        agent_group = {}
-        for agent_id in self.agent_ids:
-            agent_group[agent_id] = self.model_mu
-        offspring_array.append(agent_group)
-        agent_group = {}
-        for agent_id in self.agent_ids:
-            agent_group[agent_id] = self.elite_models[0]
-        offspring_array.append(agent_group)
+        offspring_array.append(wrap_agentid(self.agent_ids, self.model_mu))
+        offspring_array.append(wrap_agentid(self.agent_ids, self.elite_models[0]))
         offspring_array[0:0] = self._gen_mutation(
             self.agent_ids,
             self.model_mu,
