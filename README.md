@@ -30,7 +30,7 @@ env:
   pomdp: True
 ```
 ### POMDP CartPole benchmarks
-GRU agent with simple-evolution strategy(<span style="color:green">green</span>) scores over 200 in POMDP CartPole environment, whereas ANN agent(<span style="color:yellow">yellow</span>) scores nearly 60, failed to successfully learn POMDP CartPole environment. GRU agent with simple-genetic strategy(<span style="color:purple">purple</span>) also shows poor performance.
+GRU agent with simple-evolution strategy(green) scores over 200 in POMDP CartPole environment, whereas ANN agent(yellow) scores nearly 60, failed to successfully learn POMDP CartPole environment. GRU agent with simple-genetic strategy(purple) also shows poor performance.
 <img src=https://user-images.githubusercontent.com/16518993/124372010-42f43980-dcc2-11eb-848f-eecaa9c7f30c.png width=600>
 
 
