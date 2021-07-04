@@ -2,15 +2,12 @@ import os
 import time
 from datetime import datetime
 from collections import deque
-from copy import deepcopy
 
 import numpy as np
 import multiprocessing as mp
 import torch
 
 import wandb
-from utils import slice_list
-
 from .abstracts import BaseESLoop
 
 
