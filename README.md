@@ -1,5 +1,5 @@
-# give-life-to-agents
-Give-life-to-agents is a project for bio-inspired neural network training.
+# torch-es
+### Project for bio-inspired methods using [PyTorch](https://pytorch.org/)
 <p float="center">
   <img src="https://user-images.githubusercontent.com/16518993/123286330-ca1a1280-d548-11eb-8789-1b27edaee9a8.gif" width="300" />
   <img src="https://user-images.githubusercontent.com/16518993/123286575-fcc40b00-d548-11eb-9e73-1ec3b465d5ce.gif" width="300" /> 
@@ -38,8 +38,8 @@ GRU agent with simple-evolution strategy(green) scores over 200 in POMDP CartPol
 
 ```bash
 # recommend python==3.8.10
-git clone https://github.com/jinPrelude/give-life-to-agents.git
-cd give-life-to-agents
+git clone https://github.com/jinPrelude/torch-es.git
+cd torch-es
 pip install -r requirements.txt
 ```
 
