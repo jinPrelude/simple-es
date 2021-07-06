@@ -26,7 +26,7 @@ Recurrent ANN(GRU) is also implemented by default. The use of the gru module can
 network:
   gru: True
 env:
-  name: "LunarLanderContinuous-v2"
+  name: "CartPole-v1"
   pomdp: True
 ```
 ### POMDP CartPole benchmarks
