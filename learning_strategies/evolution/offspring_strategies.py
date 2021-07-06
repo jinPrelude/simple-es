@@ -51,10 +51,12 @@ class simple_genetic(BaseOffspringStrategy):
             # add elite offsprings
             for _ in range((offspring_num // elite_num) - 1):
                 perturbed_network = deepcopy(p)
-                for param in perturbed_network.parameters():
+                perturbed_network_param_list = perturbed_network.get_param_list()
+                for param in perturbed_network_param_list:
                     with torch.no_grad():
                         noise = torch.normal(0, sigma, size=param.size())
                         param.add_(noise)
+                perturbed_network.apply_param(perturbed_network_param_list)
                 offspring_group.append(wrap_agentid(agent_ids, perturbed_network))
         return offspring_group
 
@@ -169,13 +171,16 @@ class simple_evolution(BaseOffspringStrategy):
         offspring_group.append(wrap_agentid(agent_ids, elite_models[0]))
 
         for _ in range(offspring_num - 1):
-            preturbed_agent = deepcopy(mu_model)
+            preturbed_net = deepcopy(mu_model)
+            perturbed_net_param_list = preturbed_net.get_param_list()
+            sigma_net_param_list = sigma_model.get_param_list()
             for param, sigma_param in zip(
-                preturbed_agent.parameters(), sigma_model.parameters()
+                perturbed_net_param_list, sigma_net_param_list
             ):
                 with torch.no_grad():
                     param.data = torch.normal(mean=param.data, std=sigma_param.data)
-            offspring_group.append(wrap_agentid(agent_ids, preturbed_agent))
+            preturbed_net.apply_param(perturbed_net_param_list)
+            offspring_group.append(wrap_agentid(agent_ids, preturbed_net))
 
         return offspring_group
 
@@ -201,9 +206,11 @@ class simple_evolution(BaseOffspringStrategy):
         self.elite_models = [network for i in range(self.elite_num)]
         self.mu_model = self.elite_models[0]
         self.sigma_model = self.mu_model
-        for param in self.sigma_model.parameters():
+        sigma_model_param_list = self.sigma_model.get_param_list()
+        for param in sigma_model_param_list:
             with torch.no_grad():
                 param.data = torch.ones(param.data.size()) * self.init_sigma
+        self.sigma_model.apply_param(sigma_model_param_list)
         # agent_ids, elite_models, mu_model, sigma_model, offspring_num
         offspring_group = self._gen_offsprings(
             self.agent_ids,
@@ -243,25 +250,28 @@ class simple_evolution(BaseOffspringStrategy):
 
         sigma_mean = []
         # simply decay sigma
-        for var_param in self.sigma_model.parameters():
+        sigma_model_param_list = self.sigma_model.get_param_list()
+        for var_param in sigma_model_param_list:
             with torch.no_grad():
                 var_param.data = var_param.data * self.sigma_decay
                 sigma_mean.append(
                     torch.sum(var_param.data) / (var_param.data.view(-1, 1).shape[0])
                 )
+        self.sigma_model.apply_param(sigma_model_param_list)
         curr_sigma = sum(sigma_mean) / len(sigma_mean)
 
         # get new mu
-        new_mu_model = self.elite_models[0]
+        new_mu_param_list = self.elite_models[0].get_param_list()
         for elite in self.elite_models[1:]:
-            for param, param2 in zip(new_mu_model.parameters(), elite.parameters()):
+            elite_param_list = elite.get_param_list()
+            for param, param2 in zip(new_mu_param_list, elite_param_list):
                 with torch.no_grad():
                     param.data = param.data + param2.data
         # get mean weight
-        for param in new_mu_model.parameters():
+        for param in new_mu_param_list:
             with torch.no_grad():
                 param.data = param.data / self.elite_num
-        self.mu_model = new_mu_model
+        self.mu_model.apply_param(new_mu_param_list)
 
         offspring_group = self._gen_offsprings(
             self.agent_ids,

@@ -14,3 +14,11 @@ class BaseNetwork(nn.Module):
     @abstractmethod
     def reset(self):
         pass
+
+    @abstractmethod
+    def get_param_list(self):
+        pass
+
+    @abstractmethod
+    def apply_param(self, param_lst: list):
+        pass

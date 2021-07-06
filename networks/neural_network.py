@@ -40,3 +40,15 @@ class GymEnvModel(BaseNetwork):
     def init_weights(self, mu=0, sigma=1):
         for param in self.parameters():
             nn.init.normal_(param, mu, sigma)
+
+    def get_param_list(self):
+        param_list = []
+        for param in self.parameters():
+            param_list.append(param.data)
+        return param_list
+
+    def apply_param(self, param_lst: list):
+        count = 0
+        for p in self.parameters():
+            p.data = param_lst[count]
+            count += 1
