@@ -118,10 +118,9 @@ def RolloutWorker(arguments):
             model.reset()
         while not done:
             actions = {}
-            with torch.no_grad():
-                for k, model in offspring.items():
-                    s = torch.from_numpy(states[k]["state"][np.newaxis, ...]).float()
-                    actions[k] = model(s)
+            for k, model in offspring.items():
+                s = states[k]["state"][np.newaxis, ...]
+                actions[k] = model(s)
             states, r, done, info = env.step(actions)
             # env.render()
             total_reward += r

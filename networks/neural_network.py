@@ -18,20 +18,22 @@ class GymEnvModel(BaseNetwork):
         self.discrete_action = discrete_action
 
     def forward(self, x):
-        x = x.unsqueeze(0)
-        x = torch.tanh(self.fc1(x))
-        if self.use_gru:
-            x, self.h = self.gru(x, self.h)
-            x = torch.tanh(x)
-        x = self.fc2(x)
-        if self.discrete_action:
-            x = F.softmax(x.squeeze(), dim=0)
-            x = torch.argmax(x)
-        else:
-            x = torch.tanh(x.squeeze())
-        x = x.detach().cpu().numpy()
+        with torch.no_grad():
+            x = torch.from_numpy(x).float()
+            x = x.unsqueeze(0)
+            x = torch.tanh(self.fc1(x))
+            if self.use_gru:
+                x, self.h = self.gru(x, self.h)
+                x = torch.tanh(x)
+            x = self.fc2(x)
+            if self.discrete_action:
+                x = F.softmax(x.squeeze(), dim=0)
+                x = torch.argmax(x)
+            else:
+                x = torch.tanh(x.squeeze())
+            x = x.detach().cpu().numpy()
 
-        return x
+            return x
 
     def reset(self):
         if self.use_gru:
@@ -44,11 +46,11 @@ class GymEnvModel(BaseNetwork):
     def get_param_list(self):
         param_list = []
         for param in self.parameters():
-            param_list.append(param.data)
+            param_list.append(param.data.numpy())
         return param_list
 
     def apply_param(self, param_lst: list):
         count = 0
         for p in self.parameters():
-            p.data = param_lst[count]
+            p.data = torch.tensor(param_lst[count]).float()
             count += 1
