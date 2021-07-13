@@ -112,7 +112,6 @@ def RolloutWorker(arguments):
     total_reward = 0
     for _ in range(eval_ep_num):
         states = env.reset()
-        hidden_states = {}
         done = False
         for k, model in offspring.items():
             model.reset()
@@ -121,7 +120,7 @@ def RolloutWorker(arguments):
             for k, model in offspring.items():
                 s = states[k]["state"][np.newaxis, ...]
                 actions[k] = model(s)
-            states, r, done, info = env.step(actions)
+            states, r, done, _ = env.step(actions)
             # env.render()
             total_reward += r
     rewards = total_reward / eval_ep_num
