@@ -9,9 +9,9 @@
 ### learning strategies
 - [x] vanilla evolution srtategy
 - [x] vanilla genetic srtategy
+- [x] [OpenAI ES](https://openai.com/blog/evolution-strategies/)
 - [ ] CMA-ES
 - [ ] MAPPO(Multi Agent RL)
-- [ ] [OpenAI ES](https://openai.com/blog/evolution-strategies/)
 - [ ] [WANN](https://arxiv.org/abs/1906.04358)
 - [ ] [hebbian plasticity](https://arxiv.org/abs/2007.02686)
 

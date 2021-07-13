@@ -4,7 +4,7 @@ import torch
 
 if __name__ == "__main__":
     a = GymEnvModel()
-    a.init_weights()
+    a.zero_init()
     a_param = a.get_param_list()
     print(a_param[1])
     b_param = deepcopy(a_param)

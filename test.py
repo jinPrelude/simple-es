@@ -52,10 +52,9 @@ def main():
         ep_render_lst = []
         while not done:
             actions = {}
-            with torch.no_grad():
-                for k, model in models.items():
-                    s = torch.from_numpy(obs[k]["state"][np.newaxis, ...]).float()
-                    actions[k] = model(s)
+            for k, model in models.items():
+                s = obs[k]["state"][np.newaxis, ...]
+                actions[k] = model(s)
             obs, r, done, _ = env.step(actions)
             rgb_array = env.render()
             if args.save_gif:

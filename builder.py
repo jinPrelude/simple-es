@@ -52,7 +52,24 @@ def build_loop(cfg_path, gen_num, process_num, eval_ep_num, log, save_model_peri
             log,
             save_model_period,
         )
-
+    elif strategy_cfg["name"] == "openai_es":
+        strategy = openai_es(
+            strategy_cfg["init_sigma"],
+            strategy_cfg["sigma_decay"],
+            strategy_cfg["learning_rate"],
+            strategy_cfg["offspring_num"],
+        )
+        return ESLoop(
+            cfg_path,
+            strategy,
+            env,
+            network,
+            gen_num,
+            process_num,
+            eval_ep_num,
+            log,
+            save_model_period,
+        )
     elif strategy_cfg["name"] == "simple_genetic":
         strategy = simple_genetic(
             strategy_cfg["init_sigma"],

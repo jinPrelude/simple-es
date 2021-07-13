@@ -39,9 +39,9 @@ class GymEnvModel(BaseNetwork):
         if self.use_gru:
             self.h = torch.zeros([1, 1, 32], dtype=torch.float)
 
-    def init_weights(self, mu=0, sigma=1):
+    def zero_init(self):
         for param in self.parameters():
-            nn.init.normal_(param, mu, sigma)
+            param.data = torch.zeros(param.shape)
 
     def get_param_list(self):
         param_list = []

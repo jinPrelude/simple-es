@@ -28,7 +28,7 @@ class ESLoop(BaseESLoop):
         self.env = env
         self.network = network
         self.process_num = process_num
-        self.network.init_weights(0, 1e-7)
+        self.network.zero_init()
         self.offspring_strategy = offspring_strategy
         self.generation_num = generation_num
         self.eval_ep_num = eval_ep_num

@@ -8,7 +8,7 @@ class BaseNetwork(nn.Module):
         super(BaseNetwork, self).__init__()
 
     @abstractmethod
-    def init_weights(self):
+    def zero_init(self):
         pass
 
     @abstractmethod
