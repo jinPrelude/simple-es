@@ -1,6 +1,7 @@
 env:
   name: BipedalWalker-v3
   max_step: 300
+  pomdp: False
 
 network:
   name: gym_model
@@ -14,4 +15,4 @@ strategy:
   init_sigma: 2
   sigma_decay: 0.999
   elite_num: 10
-  offspring_num: 30
+  offspring_num: 120

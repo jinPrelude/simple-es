@@ -26,7 +26,7 @@ def main():
     parser.add_argument(
         "--generation-num",
         type=int,
-        default=300,
+        default=1000,
         help="max number of generation iteration.",
     )
     parser.add_argument(
