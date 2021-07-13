@@ -15,12 +15,13 @@ class simple_genetic(BaseOffspringStrategy):
         self.elite_models = []
         self.init_sigma = init_sigma
         self.sigma_decay = sigma_decay
+        self.offsprings = []
 
         self.curr_sigma = self.init_sigma
         self.elite_num = elite_num
 
-    @staticmethod
     def _gen_offsprings(
+        self,
         agent_ids: list,
         elite_models: list,
         elite_num: int,
@@ -44,18 +45,22 @@ class simple_genetic(BaseOffspringStrategy):
         -------
         offsprings_group: list[dict, ...]
         """
-        offspring_group = []
+        self.offsprings = []
         for p in elite_models:
             # add elite
-            offspring_group.append(wrap_agentid(agent_ids, p))
+            self.offsprings.append(p)
             # add elite offsprings
             for _ in range((offspring_num // elite_num) - 1):
                 perturbed_network = deepcopy(p)
-                for param in perturbed_network.parameters():
-                    with torch.no_grad():
-                        noise = torch.normal(0, sigma, size=param.size())
-                        param.add_(noise)
-                offspring_group.append(wrap_agentid(agent_ids, perturbed_network))
+                perturbed_network_param_list = perturbed_network.get_param_list()
+                for idx in range(len(perturbed_network_param_list)):
+                    noise = np.random.normal(
+                        0, sigma, size=perturbed_network_param_list[idx].shape
+                    )
+                    perturbed_network_param_list[idx] += noise
+                perturbed_network.apply_param(perturbed_network_param_list)
+                self.offsprings.append(perturbed_network)
+        offspring_group = [wrap_agentid(agent_ids, model) for model in self.offsprings]
         return offspring_group
 
     def get_elite_model(self):
@@ -88,15 +93,13 @@ class simple_genetic(BaseOffspringStrategy):
         )
         return offspring_group
 
-    def evaluate(self, rewards: list, offsprings: list):
+    def evaluate(self, rewards: list):
         """Get rewards and offspring models, evaluate and update, and return new offsprings.
 
         Parameters
         ----------
         rewards : list[float, ...]
             Rewards received by offsprings
-        offsprings : list[dict, ...]
-            Model of the offsprings.
 
         Returns
         -------
@@ -112,7 +115,7 @@ class simple_genetic(BaseOffspringStrategy):
         best_reward = max(rewards)
         self.elite_models = []
         for elite_id in elite_ids:
-            self.elite_models.append(offsprings[elite_id][self.agent_ids[0]])
+            self.elite_models.append(self.offsprings[elite_id])
         offspring_group = self._gen_offsprings(
             self.agent_ids,
             self.elite_models,
@@ -142,12 +145,12 @@ class simple_evolution(BaseOffspringStrategy):
         self.elite_models = []
         self.elite_num = elite_num
         self.sigma_decay = sigma_decay
+        self.curr_sigma = self.init_sigma
+        self.offsprings = []
 
         self.mu_model = None
-        self.sigma_model = None
 
-    @staticmethod
-    def _gen_offsprings(agent_ids, elite_models, mu_model, sigma_model, offspring_num):
+    def _gen_offsprings(self, agent_ids, elite_models, mu_model, sigma, offspring_num):
         """Return offsprings based on current elite models.
 
         Parameters
@@ -157,25 +160,27 @@ class simple_evolution(BaseOffspringStrategy):
         offspring_num: int
             number of offsprings should be made
         mu_model: torch.nn.Module
-        sigma_model: torch.nn.Module
 
         Returns
         -------
         offsprings_group: list[dict, ...]
         """
-
-        offspring_group = []
-        offspring_group.append(wrap_agentid(agent_ids, mu_model))
-        offspring_group.append(wrap_agentid(agent_ids, elite_models[0]))
+        self.offsprings = []
+        self.offsprings.append(mu_model)
+        self.offsprings.append(elite_models[0])
 
         for _ in range(offspring_num - 1):
-            preturbed_agent = deepcopy(mu_model)
-            for param, sigma_param in zip(
-                preturbed_agent.parameters(), sigma_model.parameters()
-            ):
-                with torch.no_grad():
-                    param.data = torch.normal(mean=param.data, std=sigma_param.data)
-            offspring_group.append(wrap_agentid(agent_ids, preturbed_agent))
+            preturbed_net = deepcopy(mu_model)
+            perturbed_net_param_list = preturbed_net.get_param_list()
+            for idx in range(len(perturbed_net_param_list)):
+                epsilon = np.random.normal(
+                    0, sigma, size=perturbed_net_param_list[idx].shape
+                )
+                perturbed_net_param_list[idx] += epsilon
+            preturbed_net.apply_param(perturbed_net_param_list)
+            self.offsprings.append(preturbed_net)
+
+        offspring_group = [wrap_agentid(agent_ids, model) for model in self.offsprings]
 
         return offspring_group
 
@@ -200,21 +205,17 @@ class simple_evolution(BaseOffspringStrategy):
         network.init_weights(0, 1e-7)
         self.elite_models = [network for i in range(self.elite_num)]
         self.mu_model = self.elite_models[0]
-        self.sigma_model = self.mu_model
-        for param in self.sigma_model.parameters():
-            with torch.no_grad():
-                param.data = torch.ones(param.data.size()) * self.init_sigma
         # agent_ids, elite_models, mu_model, sigma_model, offspring_num
         offspring_group = self._gen_offsprings(
             self.agent_ids,
             self.elite_models,
             self.mu_model,
-            self.sigma_model,
+            self.curr_sigma,
             self.offspring_num,
         )
         return offspring_group
 
-    def evaluate(self, rewards: list, offsprings: list):
+    def evaluate(self, rewards: list):
         """Get rewards and offspring models, evaluate and update the elite
         model and return new offsprings.
 
@@ -239,38 +240,28 @@ class simple_evolution(BaseOffspringStrategy):
         best_reward = max(rewards)
         self.elite_models = []
         for elite_id in elite_ids:
-            self.elite_models.append(offsprings[elite_id][self.agent_ids[0]])
-
-        sigma_mean = []
-        # simply decay sigma
-        for var_param in self.sigma_model.parameters():
-            with torch.no_grad():
-                var_param.data = var_param.data * self.sigma_decay
-                sigma_mean.append(
-                    torch.sum(var_param.data) / (var_param.data.view(-1, 1).shape[0])
-                )
-        curr_sigma = sum(sigma_mean) / len(sigma_mean)
+            self.elite_models.append(self.offsprings[elite_id])
 
         # get new mu
-        new_mu_model = self.elite_models[0]
+        new_mu_param_list = self.elite_models[0].get_param_list()
         for elite in self.elite_models[1:]:
-            for param, param2 in zip(new_mu_model.parameters(), elite.parameters()):
-                with torch.no_grad():
-                    param.data = param.data + param2.data
+            elite_param_list = elite.get_param_list()
+            for idx in range(len(elite_param_list)):
+                new_mu_param_list[idx] += elite_param_list[idx]
         # get mean weight
-        for param in new_mu_model.parameters():
-            with torch.no_grad():
-                param.data = param.data / self.elite_num
-        self.mu_model = new_mu_model
+        for idx in range(len(new_mu_param_list)):
+            new_mu_param_list[idx] /= self.elite_num
 
+        self.mu_model.apply_param(new_mu_param_list)
+        self.curr_sigma *= self.sigma_decay
         offspring_group = self._gen_offsprings(
             self.agent_ids,
             self.elite_models,
             self.mu_model,
-            self.sigma_model,
+            self.curr_sigma,
             self.offspring_num,
         )
-        return offspring_group, best_reward, curr_sigma
+        return offspring_group, best_reward, self.curr_sigma
 
     def get_wandb_cfg(self):
         wandb_cfg = dict(

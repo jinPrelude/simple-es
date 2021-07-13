@@ -82,7 +82,7 @@ class ESLoop(BaseESLoop):
 
             eval_start_time = time.time()
             offsprings, best_reward, curr_sigma = self.offspring_strategy.evaluate(
-                results, offsprings
+                results
             )
             eval_consumed_time = time.time() - eval_start_time
 
@@ -112,17 +112,15 @@ def RolloutWorker(arguments):
     total_reward = 0
     for _ in range(eval_ep_num):
         states = env.reset()
-        hidden_states = {}
         done = False
         for k, model in offspring.items():
             model.reset()
         while not done:
             actions = {}
-            with torch.no_grad():
-                for k, model in offspring.items():
-                    s = torch.from_numpy(states[k]["state"][np.newaxis, ...]).float()
-                    actions[k] = model(s)
-            states, r, done, info = env.step(actions)
+            for k, model in offspring.items():
+                s = states[k]["state"][np.newaxis, ...]
+                actions[k] = model(s)
+            states, r, done, _ = env.step(actions)
             # env.render()
             total_reward += r
     rewards = total_reward / eval_ep_num
