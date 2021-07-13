@@ -82,7 +82,7 @@ class simple_genetic(BaseOffspringStrategy):
         """
 
         self.agent_ids = agent_ids
-        network.init_weights(0, 1e-7)
+        network.zero_init()
         self.elite_models = [network for _ in range(self.elite_num)]
         offspring_group = self._gen_offsprings(
             self.agent_ids,
@@ -202,7 +202,7 @@ class simple_evolution(BaseOffspringStrategy):
             Initialized offsprings.
         """
         self.agent_ids = agent_ids
-        network.init_weights(0, 1e-7)
+        network.zero_init()
         self.elite_models = [network for i in range(self.elite_num)]
         self.mu_model = self.elite_models[0]
         # agent_ids, elite_models, mu_model, sigma_model, offspring_num
@@ -257,6 +257,165 @@ class simple_evolution(BaseOffspringStrategy):
         offspring_group = self._gen_offsprings(
             self.agent_ids,
             self.elite_models,
+            self.mu_model,
+            self.curr_sigma,
+            self.offspring_num,
+        )
+        return offspring_group, best_reward, self.curr_sigma
+
+    def get_wandb_cfg(self):
+        wandb_cfg = dict(
+            init_sigma=self.init_sigma,
+            elite_num=self.elite_num,
+            offspring_num=self.offspring_num,
+        )
+        return wandb_cfg
+
+
+class openai_es(BaseOffspringStrategy):
+    def __init__(
+        self, init_sigma, sigma_decay, learning_rate, elite_num, offspring_num
+    ):
+        super(openai_es, self).__init__()
+        self.elite_num = elite_num
+        self.offspring_num = offspring_num
+        self.init_sigma = init_sigma
+        self.elite_num = elite_num
+        self.sigma_decay = sigma_decay
+        self.learning_rate = learning_rate
+        self.curr_sigma = self.init_sigma
+        self.offsprings = []
+
+        self.mu_model = None
+        self.elite_model = None
+
+    def _gen_offsprings(self, agent_ids, mu_model, sigma, offspring_num):
+        """Return offsprings based on current elite models.
+
+        Parameters
+        ----------
+        agent_ids: list[str, ...]
+        elite_models: list[torch.nn.Module, ...]
+        offspring_num: int
+            number of offsprings should be made
+        mu_model: torch.nn.Module
+
+        Returns
+        -------
+        offsprings_group: list[dict, ...]
+        """
+        self.offsprings = []
+        offspring_group = []
+
+        no_eps = deepcopy(self.mu_model)
+        no_eps_param_list = no_eps.get_param_list()
+        for idx in range(len(no_eps_param_list)):
+            no_eps_param_list[idx] = np.zeros(no_eps_param_list[idx].shape)
+        no_eps.apply_param(no_eps_param_list)
+        self.offsprings.append(no_eps)
+
+        offspring_group.append(wrap_agentid(agent_ids, self.mu_model))
+
+        for _ in range(offspring_num - 1):
+            preturbed_net = deepcopy(mu_model)
+            epsilon_net = deepcopy(mu_model)
+            perturbed_net_param_list = preturbed_net.get_param_list()
+            epsilon_net_param_list = epsilon_net.get_param_list()
+            for idx in range(len(perturbed_net_param_list)):
+                epsilon = np.random.normal(size=perturbed_net_param_list[idx].shape)
+                epsilon_net_param_list[idx] = epsilon
+                perturbed_net_param_list[idx] += epsilon * sigma
+            preturbed_net.apply_param(perturbed_net_param_list)
+            offspring_group.append(wrap_agentid(agent_ids, preturbed_net))
+            epsilon_net.apply_param(epsilon_net_param_list)
+            self.offsprings.append(epsilon_net)
+
+        return offspring_group
+
+    def get_elite_model(self):
+        return self.elite_model
+
+    def init_offspring(self, network: torch.nn.Module, agent_ids: list):
+        """Get network and agent ids, and return initialized offsprings.
+
+        Parameters
+        ----------
+        network : torch.nn.Module
+            network of the agent.
+        agent_ids : list[str, ...]
+
+        Returns
+        -------
+        offsprings: list
+            Initialized offsprings.
+        """
+        self.agent_ids = agent_ids
+        network.zero_init()
+        self.elite_model = network
+        self.mu_model = network
+        # agent_ids, elite_models, mu_model, sigma_model, offspring_num
+        offspring_group = self._gen_offsprings(
+            self.agent_ids,
+            self.mu_model,
+            self.curr_sigma,
+            self.offspring_num,
+        )
+        return offspring_group
+
+    def evaluate(self, rewards: list):
+        """Get rewards and offspring models, evaluate and update the elite
+        model and return new offsprings.
+
+        Parameters
+        ----------
+        rewards : list[float, ...]
+            Rewards received by offsprings
+        offsprings : list[dict, ...]
+            Model of the offsprings.
+
+        Returns
+        -------
+        offspring_group: list
+            New offsprings from updated models.
+        best_reward: float
+            Best rewards one of the offspring got.
+        curr_sigma: float
+            Current decayed sigma.
+        """
+
+        offspring_rank_id = np.flip(np.argsort(np.array(rewards)))
+        best_reward = max(rewards)
+        self.elite_model = self.offsprings[offspring_rank_id[0]]
+        reward_array = np.zeros(len(rewards))
+        for idx in reversed(range(len(rewards))):
+            reward_array[offspring_rank_id[idx]] = (
+                (len(rewards) - 1 - idx) / (len(rewards) - 1)
+            ) - 0.5
+        r_std = reward_array.std()
+        reward_array = (reward_array - reward_array.mean()) / r_std
+
+        # get new mu
+        zero_model = deepcopy(self.mu_model)
+        zero_model_param_list = zero_model.get_param_list()
+        for p in zero_model_param_list:
+            p *= 0
+
+        for offs_idx, offs in enumerate(self.offsprings):
+            offs_param_list = offs.get_param_list()
+            for idx in range(len(offs_param_list)):
+                zero_model_param_list[idx] += (
+                    offs_param_list[idx] * reward_array[offs_idx]
+                )
+        # get mean weight
+        update_factor = self.learning_rate / (len(self.offsprings) * self.curr_sigma)
+        mu_param_list = self.mu_model.get_param_list()
+        for idx in range(len(mu_param_list)):
+            mu_param_list[idx] += update_factor * zero_model_param_list[idx]
+
+        self.mu_model.apply_param(mu_param_list)
+        self.curr_sigma *= self.sigma_decay
+        offspring_group = self._gen_offsprings(
+            self.agent_ids,
             self.mu_model,
             self.curr_sigma,
             self.offspring_num,
