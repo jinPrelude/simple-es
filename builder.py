@@ -57,7 +57,6 @@ def build_loop(cfg_path, gen_num, process_num, eval_ep_num, log, save_model_peri
             strategy_cfg["init_sigma"],
             strategy_cfg["sigma_decay"],
             strategy_cfg["learning_rate"],
-            strategy_cfg["elite_num"],
             strategy_cfg["offspring_num"],
         )
         return ESLoop(
