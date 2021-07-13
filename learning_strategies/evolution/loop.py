@@ -82,7 +82,7 @@ class ESLoop(BaseESLoop):
 
             eval_start_time = time.time()
             offsprings, best_reward, curr_sigma = self.offspring_strategy.evaluate(
-                results, offsprings
+                results
             )
             eval_consumed_time = time.time() - eval_start_time
 
