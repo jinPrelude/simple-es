@@ -326,7 +326,7 @@ class openai_es(BaseOffspringStrategy):
         return offspring_group
 
     def get_elite_model(self):
-        return self.elite_model
+        return self.mu_model
 
     def init_offspring(self, network: torch.nn.Module, agent_ids: list):
         """Get network and agent ids, and return initialized offsprings.
@@ -376,7 +376,16 @@ class openai_es(BaseOffspringStrategy):
 
         offspring_rank_id = np.flip(np.argsort(np.array(rewards)))
         best_reward = max(rewards)
-        self.elite_model = self.epsilons[offspring_rank_id[0]]
+
+        # reconstruct elite model using epsilon and sigma
+        # self.elite_model = deepcopy(self.mu_model)
+        # elite_param_list = self.elite_model.get_param_list()
+        # elite_epsilon = self.epsilons[offspring_rank_id[0]]
+        # eps_param_list = elite_epsilon.get_param_list()
+        # for elite_param, eps_param in zip(elite_param_list, eps_param_list):
+        #     elite_param += eps_param * self.curr_sigma
+        # self.elite_model.apply_param(elite_param_list)
+
         reward_array = np.zeros(len(rewards))
         for idx in reversed(range(len(rewards))):
             reward_array[offspring_rank_id[idx]] = (
