@@ -4,7 +4,7 @@ from copy import deepcopy
 
 class Optimizer(object):
     def __init__(self, pi, epsilon=1e-08):
-        self.pi = pi.mu_model
+        self.pi = pi
         self.epsilon = epsilon
         self.t = 0
 

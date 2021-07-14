@@ -348,7 +348,7 @@ class openai_es(BaseOffspringStrategy):
         network.zero_init()
         self.elite_model = network
         self.mu_model = network
-        self.optimizer = Adam(self, self.learning_rate)
+        self.optimizer = Adam(self.mu_model, self.learning_rate)
         # agent_ids, elite_models, mu_model, sigma_model, offspring_num
         offspring_group = self._gen_offsprings(
             self.agent_ids,
