@@ -13,6 +13,5 @@ strategy:
   name : openai_es
   init_sigma: 0.2
   sigma_decay: 0.9999
-  learning_rate: 0.05
-  elite_num: 1
+  learning_rate: 0.1
   offspring_num: 96

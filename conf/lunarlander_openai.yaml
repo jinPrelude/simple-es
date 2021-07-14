@@ -15,5 +15,4 @@ strategy:
   init_sigma: 0.168
   sigma_decay: 0.9999
   learning_rate: 0.087
-  elite_num: 1
   offspring_num: 96

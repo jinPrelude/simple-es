@@ -26,7 +26,6 @@ def build_network(config):
 
 def build_loop(config, gen_num, process_num, eval_ep_num, log, save_model_period):
 
-
     env = build_env(config["env"])
     network = build_network(config["network"])
     strategy_cfg = config["strategy"]
