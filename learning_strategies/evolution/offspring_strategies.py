@@ -5,6 +5,7 @@ import torch
 
 from .abstracts import BaseOffspringStrategy
 from .utils import wrap_agentid
+from learning_strategies.optimizers import Adam
 
 
 class simple_genetic(BaseOffspringStrategy):
@@ -274,10 +275,11 @@ class openai_es(BaseOffspringStrategy):
         self.sigma_decay = sigma_decay
         self.learning_rate = learning_rate
         self.curr_sigma = self.init_sigma
-        self.offsprings = []
+        self.epsilons = []
 
         self.mu_model = None
         self.elite_model = None
+        self.optimizer = None
 
     def _gen_offsprings(self, agent_ids, mu_model, sigma, offspring_num):
         """Return offsprings based on current elite models.
@@ -346,6 +348,7 @@ class openai_es(BaseOffspringStrategy):
         network.zero_init()
         self.elite_model = network
         self.mu_model = network
+        self.optimizer = Adam(self, self.learning_rate)
         # agent_ids, elite_models, mu_model, sigma_model, offspring_num
         offspring_group = self._gen_offsprings(
             self.agent_ids,
@@ -377,7 +380,7 @@ class openai_es(BaseOffspringStrategy):
         offspring_rank_id = np.flip(np.argsort(np.array(rewards)))
         best_reward = max(rewards)
 
-        # reconstruct elite model using epsilon and sigma
+        # # reconstruct elite model using epsilon and sigma
         # self.elite_model = deepcopy(self.mu_model)
         # elite_param_list = self.elite_model.get_param_list()
         # elite_epsilon = self.epsilons[offspring_rank_id[0]]
@@ -395,22 +398,23 @@ class openai_es(BaseOffspringStrategy):
         reward_array = (reward_array - reward_array.mean()) / r_std
 
         # get new mu
-        zero_model = deepcopy(self.mu_model)
-        zero_param_list = zero_model.get_param_list()
-        for zero_param in zero_param_list:
-            zero_param *= 0
+        grad = deepcopy(self.mu_model)
+        grad_param_list = grad_model.get_param_list()
+        for grad_param in grad_param_list:
+            grad_param *= 0
 
+        update_factor = self.learning_rate / (len(self.epsilons) * self.curr_sigma)
+        # multiply negative num to make minimize problem for optimizer
+        update_factor *= -1.0
         for offs_idx, offs in enumerate(self.epsilons):
             offs_param_list = offs.get_param_list()
-            for zero_param, offs_param in zip(zero_param_list, offs_param_list):
-                zero_param += offs_param * reward_array[offs_idx]
-        # get mean weight
-        update_factor = self.learning_rate / (len(self.epsilons) * self.curr_sigma)
-        mu_param_list = self.mu_model.get_param_list()
-        for mu_param, zero_param in zip(mu_param_list, zero_param_list):
-            mu_param += update_factor * zero_param
+            for grad_param, offs_param in zip(grad_param_list, offs_param_list):
+                grad_param += offs_param * reward_array[offs_idx]
+        for grad_param in grad_param_list:
+            grad_param *= update_factor
 
-        self.mu_model.apply_param(mu_param_list)
+        self.optimizer.update(grad_param_list)
+
         self.curr_sigma *= self.sigma_decay
         offspring_group = self._gen_offsprings(
             self.agent_ids,
