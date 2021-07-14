@@ -1,6 +1,8 @@
 import numpy as np
 from copy import deepcopy
 
+# Reference:
+# https://github.com/openai/evolution-strategies-starter/blob/master/es_distributed/optimizers.py
 
 class Optimizer(object):
     def __init__(self, pi, epsilon=1e-08):
