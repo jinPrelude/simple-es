@@ -1,4 +1,5 @@
 import random
+import yaml
 import argparse
 import numpy as np
 import torch
@@ -26,7 +27,7 @@ def main():
     parser.add_argument(
         "--generation-num",
         type=int,
-        default=1000,
+        default=10000,
         help="max number of generation iteration.",
     )
     parser.add_argument(
@@ -46,8 +47,12 @@ def main():
 
     set_seed(args.seed)
 
+    with open(args.cfg_path) as f:
+        config = yaml.load(f, Loader=yaml.FullLoader)
+        f.close()
+
     loop = builder.build_loop(
-        args.cfg_path,
+        config,
         args.generation_num,
         args.process_num,
         args.eval_ep_num,

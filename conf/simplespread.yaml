@@ -10,8 +10,9 @@ network:
   gru: True
 
 strategy:
-  name : simple_evolution
-  init_sigma: 3
+  name : openai_es
+  init_sigma: 0.2
   sigma_decay: 0.9999
-  elite_num: 10
-  offspring_num: 100
+  learning_rate: 0.05
+  elite_num: 1
+  offspring_num: 96

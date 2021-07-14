@@ -1,9 +1,9 @@
 import random
+import yaml
 import argparse
 import numpy as np
 import torch
 import builder
-import yaml
 import tempfile
 
 
@@ -73,7 +73,7 @@ def main():
         config = yaml.load(f, Loader=yaml.FullLoader)
         f.close()
     config = change_value(config, args)
-    
+
     set_seed(args.seed)
 
     loop = builder.build_loop(
