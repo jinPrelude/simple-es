@@ -1,0 +1,20 @@
+program: sweep_main.py
+method: bayes
+metric: 
+  name: ep5_mean_reward
+  goal: maximize
+parameters:
+  cfg-path:
+    value: conf/bipedalwalker.yaml
+  init-sigma:
+    min: 0.05
+    max: 2.0
+  sigma-decay:
+    values: [0.999, 0.9999]
+  generation-num: 
+    value: 300
+  offspring-num:
+    value: 96
+  elite-num:
+    values: [5, 10, 15, 20]
+  

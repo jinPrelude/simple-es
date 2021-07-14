@@ -24,11 +24,7 @@ def build_network(config):
         )
 
 
-def build_loop(cfg_path, gen_num, process_num, eval_ep_num, log, save_model_period):
-
-    with open(cfg_path) as f:
-        config = yaml.load(f, Loader=yaml.FullLoader)
-        f.close()
+def build_loop(config, gen_num, process_num, eval_ep_num, log, save_model_period):
 
     env = build_env(config["env"])
     network = build_network(config["network"])
@@ -42,7 +38,7 @@ def build_loop(cfg_path, gen_num, process_num, eval_ep_num, log, save_model_peri
             strategy_cfg["offspring_num"],
         )
         return ESLoop(
-            cfg_path,
+            config,
             strategy,
             env,
             network,
@@ -60,7 +56,7 @@ def build_loop(cfg_path, gen_num, process_num, eval_ep_num, log, save_model_peri
             strategy_cfg["offspring_num"],
         )
         return ESLoop(
-            cfg_path,
+            config,
             strategy,
             env,
             network,
@@ -78,7 +74,7 @@ def build_loop(cfg_path, gen_num, process_num, eval_ep_num, log, save_model_peri
             strategy_cfg["offspring_num"],
         )
         return ESLoop(
-            cfg_path,
+            config,
             strategy,
             env,
             network,
