@@ -399,7 +399,7 @@ class openai_es(BaseOffspringStrategy):
 
         # get new mu
         grad = deepcopy(self.mu_model)
-        grad_param_list = grad_model.get_param_list()
+        grad_param_list = grad.get_param_list()
         for grad_param in grad_param_list:
             grad_param *= 0
 
