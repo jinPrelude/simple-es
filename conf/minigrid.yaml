@@ -1,0 +1,31 @@
+env:
+  name: MiniGrid-Empty-Random-5x5-v0
+  max_step: None
+  pomdp: False
+
+network:
+  name: MinigridCNN
+  num_channel: 3
+  num_action: 3
+
+# strategy:
+#   name : simple_genetic
+#   init_sigma: 2
+#   sigma_decay: 0.999
+#   elite_num: 10
+#   offspring_num: 120
+
+# strategy:
+#   name : simple_evolution
+#   init_sigma: 2
+#   sigma_decay: 0.9999
+#   elite_num: 10
+#   offspring_num: 96
+
+
+strategy:
+  name : openai_es
+  init_sigma: 0.168
+  sigma_decay: 0.9999
+  learning_rate: 0.087
+  offspring_num: 120

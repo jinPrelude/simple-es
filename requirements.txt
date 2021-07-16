@@ -9,3 +9,10 @@ pettingzoo[all]
 pybullet==3.0.0 # latest version(>=3.1.7 print unexpected string "argv[0]=")
 moviepy==1.0.3
 black==21.6b0
+
+#atari
+gym[atari]
+opencv-python==4.5.3.56
+
+#minigrid
+# https://github.com/maximecb/gym-minigrid

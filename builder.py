@@ -2,6 +2,7 @@ import yaml
 
 from envs.gym_wrapper import *
 from envs.pettingzoo_wrapper import *
+from envs.minigrid_wrapper import *
 from networks.neural_network import *
 from learning_strategies.evolution.offspring_strategies import *
 from learning_strategies.evolution.loop import *
@@ -10,6 +11,8 @@ from learning_strategies.evolution.loop import *
 def build_env(config):
     if config["name"] in ["simple_spread", "waterworld", "multiwalker"]:
         return PettingzooWrapper(config["name"], config["max_step"])
+    elif "MiniGrid" in config["name"]:
+        return MinigridWrapper(config["name"], config["max_step"], config["pomdp"])
     else:
         return GymWrapper(config["name"], config["max_step"], config["pomdp"])
 
@@ -22,8 +25,13 @@ def build_network(config):
             config["discrete_action"],
             config["gru"],
         )
-    if config["name"] == "AtariDQN":
+    elif config["name"] == "AtariDQN":
         return AtariDQN(
+            config["num_channel"],
+            config["num_action"],
+        )
+    elif config["name"] == "MinigridCNN":
+        return MinigridCNN(
             config["num_channel"],
             config["num_action"],
         )

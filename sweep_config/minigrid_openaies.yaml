@@ -1,0 +1,18 @@
+program: sweep_main.py
+method: bayes
+metric: 
+  name: ep5_mean_reward
+  goal: maximize
+parameters:
+  cfg-path:
+    value: conf/minigrid.yaml
+  learning-rate:
+    values: [0.2, 0.1, 0.07, 0.05, 0.03, 0.02, 0.01, 0.007, 0.005, 0.003, 0.001]
+  init-sigma:
+    values: [2.0, 1.5, 1.0, 0.5, 0.3, 0.2, 0.1, 0.05]
+  sigma-decay:
+    value: 1.0
+  generation-num: 
+    value: 100
+  offspring-num:
+    value: 360

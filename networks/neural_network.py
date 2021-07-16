@@ -105,3 +105,50 @@ class AtariDQN(BaseNetwork):
         for p in self.parameters():
             p.data = torch.tensor(param_lst[count]).float()
             count += 1
+
+
+class MinigridCNN(BaseNetwork):
+    def __init__(self, num_channel=3, num_action=14):
+        """
+        Initialize Deep Q Network
+        Args:
+            in_channels (int): number of input channels
+            n_actions (int): number of outputs
+        """
+        super(MinigridCNN, self).__init__()
+        self.cnn1 = nn.Conv2d(num_channel, 8, 3, 1)
+        self.cnn2 = nn.Conv2d(8, 8, 3, 1)
+        self.fc1 = nn.Linear(8, 32)
+        self.head = nn.Linear(32, num_action)
+
+    def forward(self, x):
+        with torch.no_grad():
+            x = torch.from_numpy(x).float()
+            x = x.float() / 255
+            x = F.relu(self.cnn1(x))
+            x = F.relu(self.cnn2(x))
+            x = x.view(x.shape[0], -1)
+            x = F.relu(self.fc1(x))
+            x = self.head(x)
+            x = torch.argmax(x)
+            x = x.detach().cpu().numpy()
+            return x
+
+    def zero_init(self):
+        for param in self.parameters():
+            param.data = torch.zeros(param.shape)
+
+    def reset(self):
+        pass
+
+    def get_param_list(self):
+        param_list = []
+        for param in self.parameters():
+            param_list.append(param.data.numpy())
+        return param_list
+
+    def apply_param(self, param_lst: list):
+        count = 0
+        for p in self.parameters():
+            p.data = torch.tensor(param_lst[count]).float()
+            count += 1

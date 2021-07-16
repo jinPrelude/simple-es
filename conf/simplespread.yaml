@@ -7,11 +7,11 @@ network:
   num_state: 18
   num_action: 5
   discrete_action: True
-  gru: True
+  gru: False
 
 strategy:
   name : openai_es
   init_sigma: 0.2
-  sigma_decay: 0.9999
+  sigma_decay: 0.99999
   learning_rate: 0.05
-  offspring_num: 96
+  offspring_num: 240
