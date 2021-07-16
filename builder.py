@@ -22,6 +22,11 @@ def build_network(config):
             config["discrete_action"],
             config["gru"],
         )
+    if config["name"] == "AtariDQN":
+        return AtariDQN(
+            config["num_channel"],
+            config["num_action"],
+        )
 
 
 def build_loop(config, gen_num, process_num, eval_ep_num, log, save_model_period):

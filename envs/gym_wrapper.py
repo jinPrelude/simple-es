@@ -1,5 +1,6 @@
 import gym
 import pybullet_envs
+from .atari_wrapper import atari_env_generator
 
 gym.logger.set_level(40)
 
@@ -16,6 +17,8 @@ class GymWrapper:
                 self.env = CartPolePOMDP(self.env)
             else:
                 raise AssertionError(f"{name} doesn't support POMDP.")
+        if "Pong" in name:
+            self.env = atari_env_generator(name)
         self.max_step = max_step
         self.curr_step = 0
         self.name = name
