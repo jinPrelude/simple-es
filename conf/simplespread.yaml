@@ -4,14 +4,14 @@ env:
 
 network:
   name: gym_model
-  num_state: 18
+  num_state: 12
   num_action: 5
   discrete_action: True
   gru: True
 
 strategy:
   name : openai_es
-  init_sigma: 0.2
+  init_sigma: 0.17
   sigma_decay: 0.9999
-  learning_rate: 0.05
+  learning_rate: 0.1
   offspring_num: 96

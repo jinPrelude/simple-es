@@ -6,7 +6,7 @@ from pettingzoo.sisl import multiwalker_v6, waterworld_v3
 class PettingzooWrapper:
     def __init__(self, name, max_step=None):
         if name == "simple_spread":
-            self.env = simple_spread_v2.env()
+            self.env = simple_spread_v2.env(N=2)
         elif name == "waterworld":
             self.env = waterworld_v3.env()
         elif name == "multiwalker":
@@ -35,7 +35,7 @@ class PettingzooWrapper:
         return_list = {}
         for agent in self.env.agent_iter():
             act = action[agent]
-            if self.name == "waterworkd":
+            if self.name == "waterworld":
                 act *= 0.001
             self.env.step(act)
             if agent == self.agents[-1]:
