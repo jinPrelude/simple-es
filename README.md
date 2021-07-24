@@ -6,17 +6,18 @@
 </p>
 Simple-es is designed to help you quickly understand evolutionary learning through code, so we considered easy-to-understand code structure first, yet has strong features.
 
+\
 This project has 4 main features:
 1. evolutionary strategies with gym environment
 2. recurrent neural newtork support
 3. multi-agent environment support(pettingzoo)
 4. wandb sweep parameter search support
 
-**NOTE: This repo is archived for stable reproducibility. Visit [torch-es](https://github.com/jinPrelude/torch-es.git) for more advanced features!! It uses mpi4py to speed up training, and planning to implement more bio-inspired algorithms like NEAT families, and hebbian learning!**
+**NOTE: This repo is archived for stable reproducibility. Visit [torch-es](https://github.com/jinPrelude/mpi-es.git) for more advanced features!! It uses mpi4py to speed up training, and planning to implement more bio-inspired algorithms like NEAT families, and hebbian learning!**
 
 ## Algorithms
 We Implemented three algorithms below:
-- **simple_evolution**: Use Gaussian noise for offspring generation and apply the average weight of the offsprings to the weight of the next parent(mu) model.
+- **simple_evolution**: Use Gaussian noise for offspring generation and apply the average weight of the offssprings to the weight of the next parent(mu) model.
 - **vanilla genetic srtategy**: Use Gaussian noise to generate offspring for N parent models, and adopt the N models with the highest performance among offsprings as the next parent model. No mutation process implemented.
 - **[OpenAI ES](https://openai.com/blog/evolution-strategies/)**: Evolutionary strategy proposed by openAI in 2017 to solve problems of reinforcement learning. Visit the link for more information.
 
