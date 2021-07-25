@@ -1,6 +1,7 @@
 env:
   name: HalfCheetahBulletEnv-v0
-  max_step: 500
+  max_step: None
+  pomdp: False
 
 network:
   name: gym_model
@@ -10,8 +11,8 @@ network:
   gru: False
 
 strategy:
-  name : simple_genetic
-  init_sigma: 2.3
-  sigma_decay: 0.999
-  elite_num: 10
-  offspring_num: 240
+  name : openai_es
+  init_sigma: 0.2
+  sigma_decay: 0.99995
+  learning_rate: 0.9
+  offspring_num: 96

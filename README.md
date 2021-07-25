@@ -1,10 +1,11 @@
 # simple-es
 ### Simple implementations of multi-agent evolutionary strategies using minimal dependencies.
 <p float="center">
-  <img src="https://user-images.githubusercontent.com/16518993/123286330-ca1a1280-d548-11eb-8789-1b27edaee9a8.gif" width="300" />
-  <img src="https://user-images.githubusercontent.com/16518993/123286575-fcc40b00-d548-11eb-9e73-1ec3b465d5ce.gif" width="300" /> 
+  <img src="https://user-images.githubusercontent.com/16518993/126901017-2a7d628f-fe2a-47e7-8540-92bd69603c74.gif" width="200" /> 
+  <img src="https://user-images.githubusercontent.com/16518993/126900857-12ff3f52-0a3a-4670-aea3-aa7b73c2a04b.gif" width="200" />
 </p>
-Simple-es is designed to help you quickly understand evolutionary learning through code, so we considered easy-to-understand code structure first, yet has strong features.
+
+**Simple-es is designed to help you quickly understand evolutionary learning through code, so we considered easy-to-understand code structure first, yet has strong features.**
 
 \
 This project has 4 main features:
@@ -18,7 +19,7 @@ This project has 4 main features:
 ## Algorithms
 We Implemented three algorithms below:
 - **simple_evolution**: Use Gaussian noise for offspring generation and apply the average weight of the offssprings to the weight of the next parent(mu) model.
-- **vanilla genetic srtategy**: Use Gaussian noise to generate offspring for N parent models, and adopt the N models with the highest performance among offsprings as the next parent model. No mutation process implemented.
+- **simple_genetic**: Use Gaussian noise to generate offspring for N parent models, and adopt the N models with the highest performance among offsprings as the next parent model. No mutation process implemented.
 - **[OpenAI ES](https://openai.com/blog/evolution-strategies/)**: Evolutionary strategy proposed by openAI in 2017 to solve problems of reinforcement learning. Visit the link for more information.
 
 ## Recurrent Neural Network with POMDP environments.
