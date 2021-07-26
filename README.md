@@ -72,7 +72,7 @@ We recommand you to install in virtual environment to avoid any dependency issue
 ```
 
 ### Increase thread limit
-To train offsprings > 100, You should increase the system's python thread limit. This is python's fundamental issue. You can increase by modifying `/etc/security/limits.conf`
+To train offsprings > 100, You may increase the system's python thread limit. Since it's python's fundamental issue, you can increase by modifying `/etc/security/limits.conf`
 ```bash
 > sudo vim /etc/security/limits.conf
 ```
