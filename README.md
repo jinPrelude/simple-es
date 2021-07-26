@@ -1,7 +1,7 @@
 # simple-es
 ### Simple implementations of multi-agent evolutionary strategies using minimal dependencies.
 <p float="center">
-  <img src="https://user-images.githubusercontent.com/16518993/126901017-2a7d628f-fe2a-47e7-8540-92bd69603c74.gif" width="250" /> 
+  <img src="https://user-images.githubusercontent.com/16518993/126927433-583913b2-b329-47c4-a002-4b3f9d1e0923.gif" width="250" /> 
   <img src="https://user-images.githubusercontent.com/16518993/126900857-12ff3f52-0a3a-4670-aea3-aa7b73c2a04b.gif" width="250"  />
   <img src="https://user-images.githubusercontent.com/16518993/126922639-5baa4176-f85d-4642-a6b3-ddd94ed56448.gif" width="250" />
 </p>
@@ -39,7 +39,7 @@ python run_es.py --cfg-path conf/lunarlander_openai.yaml
 ### POMDP CartPole benchmarks
 GRU agent with simple-evolution strategy(green) got perfect score (500) in POMDP CartPole environment, whereas ANN agent(yellow) scores nearly 60, failed to learn POMDP CartPole environment. GRU agent with simple-genetic strategy(purple) also shows poor performance.
 
-<img src=https://user-images.githubusercontent.com/16518993/125189883-4d3fa600-e275-11eb-9311-1a3cce3d5041.png width=500>
+<img src=https://user-images.githubusercontent.com/16518993/125189883-4d3fa600-e275-11eb-9311-1a3cce3d5041.png width=600>
 
 ## Pettingzoo Multi-Agent Environment
 Three [pettingzoo](https://github.com/PettingZoo-Team/PettingZoo) envionments are currently implemented: simple_spread, waterworld, multiwalker. But you can easily add other pettingzoo enviornments by ```modifying envs/pettingzoo_wrapper.py```. You can try simple_spread environment by running the command below:
@@ -50,7 +50,7 @@ python run_es.py --cfg-path conf/simplespread.yaml
 ## Wandb Sweep hyperparameter search
 Wandb Sweep is a hyperparameter search tool serviced by [wandb](https://wandb.ai/home). **It automatically finds the best hyperparameters for selected environment and strategy.** hyperparameter for LunarLander with POMDP setting(```conf/lunarlander_openai.yaml```) is a good example of finding the hyperparameters quickly through the sweep function.
 
-<img src="https://user-images.githubusercontent.com/16518993/126923452-6f1fce73-1c8b-466d-90ac-c474c9e04cb7.png" width="500">
+<img src="https://user-images.githubusercontent.com/16518993/126923452-6f1fce73-1c8b-466d-90ac-c474c9e04cb7.png" width="600">
 
 There is an example config file in the path ```sweep_config/``` you can try wandb sweep.
 It can be run as follows:
