@@ -63,6 +63,7 @@ It can be run as follows:
 Visit [here](https://docs.wandb.ai/guides/sweeps) for more information about wandb sweep.
 ## Installation
 
+We recommand you to install in virtual environment to avoid any dependency issues.
 ```bash
 # recommend python==3.8.10
 > git clone https://github.com/jinPrelude/simple-es.git
@@ -70,6 +71,17 @@ Visit [here](https://docs.wandb.ai/guides/sweeps) for more information about wan
 > pip install -r requirements.txt
 ```
 
+### Increase thread limit
+To train offsprings > 100, You should increase the system's python thread limit. This is python's fundamental issue. You can increase by modifying `/etc/security/limits.conf`
+```bash
+> sudo vim /etc/security/limits.conf
+```
+and add the codes below:
+```
+*               soft    nofile          65535
+*               hard    nofile          65535
+```
+save and quit the file by vim command: `esc + : + wq + enter`, and reboot your computer.
 ## Train
 
 ```bash
