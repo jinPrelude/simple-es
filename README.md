@@ -8,6 +8,8 @@
 
 **Simple-es is designed to help you quickly understand evolutionary learning through code, so we considered easy-to-understand code structure first, yet has strong features.**
 
+*Latest Check Date: Aug.11.2021*
+
 \
 This project has 4 main features:
 1. evolutionary strategies with gym environment
@@ -81,7 +83,7 @@ and add the codes below:
 *               soft    nofile          65535
 *               hard    nofile          65535
 ```
-save and quit the file by vim command: `esc + : + wq + enter`, and reboot your computer.
+save and quit the file by vim command: `esc` + `:` + `wq` + `enter`, and reboot your computer.
 ## Train
 
 ```bash
