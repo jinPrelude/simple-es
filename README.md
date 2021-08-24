@@ -64,6 +64,11 @@ It can be run as follows:
 ```
 Visit [here](https://docs.wandb.ai/guides/sweeps) for more information about wandb sweep.
 ## Installation
+### prerequisite
+You need following library:
+```
+> sudo apt install swig # for box2d-py
+```
 
 We recommand you to install in virtual environment to avoid any dependency issues.
 ```bash
