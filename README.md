@@ -17,7 +17,7 @@ This project has 4 main features:
 3. Pettingzoo multi-agent environment support
 4. wandb sweep parameter search support
 
-**NOTE: This project will only be maintained for stable reproducability. Visit [torch-es](https://github.com/jinPrelude/mpi-es.git) for more advanced features!! It uses mpi4py to speed up training, and planning to implement more bio-inspired algorithms like NEAT families, and hebbian learning!**
+**NOTE: If you want a NEAT algorithm that has the same design pattern with [simple-es](https://github.com/jinPrelude/simple-es) and performs more powerful distributed processing using mpi4py, visit [pyNeat](https://github.com/jinPrelude/pyNeat).**
 
 ## Algorithms
 We Implemented three algorithms below:
